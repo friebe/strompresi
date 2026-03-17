@@ -157,10 +157,10 @@
         </footer>
     </div>
 
-    <script type="module" src="/js/app.ts"></script>
+    <script type="module" src="./js/app.ts"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
       }
     </script>
 </body>

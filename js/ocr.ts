@@ -26,7 +26,8 @@ export function extractMeterReading(text: string | null | undefined): string | n
 export async function recognizeMeterReading(
   imageSource: HTMLCanvasElement | Blob
 ): Promise<string | null> {
-  const Tesseract = await import(
+  const Tesseract: any = await import(
+    // @ts-ignore
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js'
   );
   const worker = await Tesseract.createWorker('eng', 1, { logger: () => {} });
