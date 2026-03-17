@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Strompresi – Strom & Gas Abschlags-Check</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1419">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>Strompresi</h1>
+            <p class="tagline">Strom & Gas – Zählerstand eingeben, Verbrauchstrend und Abschlags-Empfehlung.</p>
+        </header>
+
+        <main class="main">
+            <div class="tabs">
+                <button type="button" class="tab active" data-tab="strom" id="tabStrom">Strom</button>
+                <button type="button" class="tab" data-tab="gas" id="tabGas">Gas</button>
+            </div>
+
+            <section class="card input-card">
+                <h2>Zählerstände & Preise</h2>
+                <form id="inputForm" class="input-form">
+                    <div class="form-row">
+                        <label for="readingNow">Zählerstand heute (<span id="unitReading">kWh</span>)</label>
+                        <div class="input-with-btn">
+                            <input type="number" id="readingNow" step="0.01" min="0" placeholder="z.B. 4523.5" required>
+                            <button type="button" class="btn-camera" id="btnCameraNow" title="Zählerstand fotografieren"><span class="btn-camera-icon">📷</span><span class="btn-camera-label">Foto</span></button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="readingMonthAgo">Letzter Zählerstand (<span id="unitReadingAgo">kWh</span>)</label>
+                        <div class="input-with-btn">
+                            <input type="number" id="readingMonthAgo" step="0.01" min="0" placeholder="z.B. 4380" required>
+                            <button type="button" class="btn-camera" id="btnCameraAgo" title="Zählerstand fotografieren"><span class="btn-camera-icon">📷</span><span class="btn-camera-label">Foto</span></button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="pricePerUnit">Arbeitspreis (<span id="unitPrice">€/kWh</span>)</label>
+                        <input type="number" id="pricePerUnit" step="0.001" min="0" placeholder="z.B. 0,32" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="baseFee">Grundgebühr (€/Monat) <span class="hint">Einfach die Zahl eintragen, z.B. 12</span></label>
+                        <input type="number" id="baseFee" step="0.01" min="0" value="0" placeholder="z.B. 12">
+                    </div>
+                    <div class="form-row">
+                        <label for="currentAbschlag">Aktueller monatlicher Abschlag (€)</label>
+                        <input type="number" id="currentAbschlag" step="0.01" min="0" placeholder="z.B. 85" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Berechnen</button>
+                </form>
+            </section>
+
+            <section id="resultsSection" class="results-section hidden">
+                <p class="month-badge" id="monthBadge"></p>
+                <div id="trendCard" class="trend-card hidden">
+                    <span id="trendIcon" class="trend-icon"></span>
+                    <span id="trendText" class="trend-text"></span>
+                </div>
+                <div class="verdict-stats-row">
+                    <div class="verdict-card" id="verdictCard">
+                        <div class="verdict-icon" id="verdictIcon"></div>
+                        <h3 id="verdictTitle">Empfehlung</h3>
+                        <p id="verdictText" class="verdict-text"></p>
+                        <p id="verdictAmount" class="verdict-amount"></p>
+                        <p id="verdictJahres" class="verdict-jahres"></p>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Verbrauch</span>
+                            <span class="stat-value" id="statVerbrauch">–</span>
+                            <span class="stat-unit" id="statVerbrauchUnit">kWh</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label" id="statKostenLabel">Tatsächliche Kosten</span>
+                            <span class="stat-value" id="statKosten">–</span>
+                            <span class="stat-unit">€</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Abschlag</span>
+                            <span class="stat-value" id="statAbschlag">–</span>
+                            <span class="stat-unit">€</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label" id="statDifferenzLabel">Guthaben/Fehlbetrag</span>
+                            <span class="stat-value" id="statDifferenz">–</span>
+                            <span class="stat-unit">€</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="visual-card">
+                    <h4>Kosten vs. Abschlag</h4>
+                    <p class="bar-hint" id="barHint">Vergleich: Was du tatsächlich zahlst (Kosten) vs. was du monatlich überweist (Abschlag)</p>
+                    <div class="bar-container">
+                        <div class="bar-scale">
+                            <span>0 €</span>
+                            <span></span>
+                            <span id="barMaxLabel">100 €</span>
+                        </div>
+                        <div class="bar-row">
+                            <span class="bar-label" id="barCostLabel">Tatsächliche Kosten</span>
+                            <div class="bar-track">
+                                <div class="bar bar-cost" id="barCost"></div>
+                            </div>
+                            <span class="bar-value" id="barCostVal">–</span>
+                        </div>
+                        <div class="bar-row">
+                            <span class="bar-label">Dein Abschlag</span>
+                            <div class="bar-track">
+                                <div class="bar bar-abschlag" id="barAbschlag"></div>
+                            </div>
+                            <span class="bar-value" id="barAbschlagVal">–</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="btnReset" class="btn btn-secondary">Neue Eingabe</button>
+            </section>
+        </main>
+
+        <div class="backup-bar">
+            <button type="button" id="btnExport" class="btn btn-backup">JSON exportieren</button>
+            <label class="btn btn-backup" for="fileImport">JSON importieren</label>
+            <input type="file" id="fileImport" accept=".json,application/json" hidden>
+        </div>
+
+        <div id="cameraModal" class="camera-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+            <div class="camera-modal-backdrop" id="cameraModalBackdrop"></div>
+            <div class="camera-modal-dialog">
+                <div class="camera-modal-header">
+                    <h3 id="cameraModalTitle">Zählerstand fotografieren</h3>
+                    <button type="button" class="camera-modal-close" id="btnCameraClose" aria-label="Schließen">×</button>
+                </div>
+                <div class="camera-modal-body">
+                    <div class="camera-preview-wrap">
+                        <video id="cameraVideo" autoplay playsinline></video>
+                        <canvas id="cameraCanvas" class="hidden"></canvas>
+                    </div>
+                    <p id="cameraStatus" class="camera-status"></p>
+                    <div class="camera-modal-footer">
+                        <button type="button" class="btn btn-secondary" id="btnCameraCancel">Abbrechen</button>
+                        <button type="button" class="btn btn-primary" id="btnCameraCapture">Aufnehmen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Einmal im Monat Zählerstand für Strom & Gas eintragen – so vermeidest du böse Überraschungen bei der Jahresabrechnung.</p>
+        </footer>
+    </div>
+
+    <script type="module" src="/js/app.ts"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+    </script>
+</body>
+</html>
