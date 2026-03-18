@@ -1,6 +1,6 @@
 # Strompresi
 
-**Monatlicher Abschlags-Check** – Einmal im Monat Zählerstände eintragen und prüfen, ob dein Strom-Abschlag noch passt.
+**Monatlicher Abschlags-Check** – Einmal im Monat Zählerstände eintragen und prüfen, ob dein Strom und Gas-Abschlag noch passt.
 
 ## Was macht es?
 
@@ -10,7 +10,7 @@ Du gibst ein:
 - **Aktuellen monatlichen Abschlag**
 
 Das Tool berechnet die tatsächlichen Kosten und zeigt dir:
-- Automatisches Backup alle 3 Monate (JSON-Download) – bei Browser-Absturz kannst du das Backup wieder importieren
+- Automatisches Backup alle 3 Monate (JSON-Download) – startet erst nach dem ersten manuellen Export; bei Browser-Absturz kannst du das Backup wieder importieren
 - ✓ **Abschlag passt** – alles gut
 - ↓ **Abschlag senken** – du zahlst zu viel
 - ↑ **Abschlag erhöhen** – Nachzahlung droht

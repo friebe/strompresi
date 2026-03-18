@@ -382,9 +382,10 @@ const App = {
 
   _maybeAutoBackup() {
     const last = getLastBackupDate();
+    if (!last) return; // Erstes Mal: kein Auto-Backup, Intervall startet erst nach manuellem Export
     const now = new Date();
-    const lastDate = last ? new Date(last) : null;
-    const daysSinceLast = lastDate ? (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24) : BACKUP_INTERVAL_DAYS + 1;
+    const lastDate = new Date(last);
+    const daysSinceLast = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceLast >= BACKUP_INTERVAL_DAYS) {
       this._downloadBackup();
       setLastBackupDate();
