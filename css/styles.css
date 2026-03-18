@@ -66,6 +66,60 @@ body {
     margin-top: 0.25rem;
 }
 
+/* Install Banner */
+.install-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.install-banner.hidden {
+    display: none !important;
+}
+
+.install-banner-text {
+    flex: 1;
+    color: var(--text);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.install-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.install-banner-close {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.install-banner-close:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
 /* Tabs */
 .tabs {
     display: flex;

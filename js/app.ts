@@ -17,6 +17,7 @@ import type { TabId } from './types.js';
 
 const STORAGE_KEY_STROM = 'strompresi_strom';
 const STORAGE_KEY_GAS = 'strompresi_gas';
+const INSTALL_BANNER_DISMISSED_KEY = 'strompresi_install_banner_dismissed';
 const BACKUP_INTERVAL_DAYS = 90; // Auto-Backup alle 3 Monate
 
 interface ResultsParams {
@@ -27,10 +28,16 @@ interface ResultsParams {
   baseFee: number;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 const App = {
   activeTab: 'strom' as TabId,
   _cameraTarget: '' as string,
   _cameraStream: null as MediaStream | null,
+  _deferredInstallPrompt: null as BeforeInstallPromptEvent | null,
 
   init() {
     document.getElementById('inputForm')?.addEventListener('submit', (e) => {
@@ -57,8 +64,76 @@ const App = {
         this._closeCamera();
       }
     });
+    document.getElementById('btnInstall')?.addEventListener('click', () => this._promptInstall());
+    document.getElementById('btnInstallClose')?.addEventListener('click', () => this._dismissInstallBanner());
+    window.addEventListener('beforeinstallprompt', (e) => this._onBeforeInstallPrompt(e as BeforeInstallPromptEvent));
+    window.addEventListener('appinstalled', () => this._hideInstallBanner());
+    this._maybeShowIOSInstallBanner();
     this._updateTabLabels();
     this._loadStoredData();
+  },
+
+  _isStandalone(): boolean {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as { standalone?: boolean }).standalone === true
+    );
+  },
+
+  _isIOS(): boolean {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  },
+
+  _maybeShowIOSInstallBanner() {
+    if (!this._isIOS() || this._isStandalone()) return;
+    if (localStorage.getItem(INSTALL_BANNER_DISMISSED_KEY)) return;
+    const banner = document.getElementById('installBanner');
+    const textEl = document.getElementById('installBannerText');
+    const btnInstall = document.getElementById('btnInstall');
+    if (!banner || !textEl) return;
+    if (textEl) textEl.textContent = 'Strompresi zum Home-Bildschirm hinzufügen: Tippe auf das Teilen-Symbol unten und wähle „Zum Home-Bildschirm hinzufügen“.';
+    if (btnInstall) btnInstall.style.display = 'none';
+    banner.classList.remove('hidden');
+  },
+
+  _onBeforeInstallPrompt(e: BeforeInstallPromptEvent) {
+    e.preventDefault();
+    this._deferredInstallPrompt = e;
+    if (!this._isStandalone() && !localStorage.getItem(INSTALL_BANNER_DISMISSED_KEY)) {
+      this._showInstallBanner();
+    }
+  },
+
+  _showInstallBanner() {
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.classList.remove('hidden');
+  },
+
+  _hideInstallBanner() {
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.classList.add('hidden');
+    this._deferredInstallPrompt = null;
+  },
+
+  _dismissInstallBanner() {
+    this._hideInstallBanner();
+    try {
+      localStorage.setItem(INSTALL_BANNER_DISMISSED_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  },
+
+  async _promptInstall() {
+    const prompt = this._deferredInstallPrompt;
+    if (!prompt) return;
+    await prompt.prompt();
+    this._hideInstallBanner();
+    try {
+      localStorage.setItem(INSTALL_BANNER_DISMISSED_KEY, '1');
+    } catch {
+      /* ignore */
+    }
   },
 
   _getStorageKey(): string {
