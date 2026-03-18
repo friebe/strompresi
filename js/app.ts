@@ -97,9 +97,9 @@ const App = {
   },
 
   _onBeforeInstallPrompt(e: BeforeInstallPromptEvent) {
-    e.preventDefault();
     this._deferredInstallPrompt = e;
     if (!this._isStandalone() && !localStorage.getItem(INSTALL_BANNER_DISMISSED_KEY)) {
+      e.preventDefault();
       this._showInstallBanner();
     }
   },
