@@ -169,24 +169,38 @@ const App = {
 
   _loadStoredData() {
     const data = load(this._getStorageKey());
-    if (!data) {
+
+    const readingNowEl = document.getElementById('readingNow') as HTMLInputElement;
+    const readingMonthAgoEl = document.getElementById('readingMonthAgo') as HTMLInputElement;
+    const pricePerUnitEl = document.getElementById('pricePerUnit') as HTMLInputElement;
+    const baseFeeEl = document.getElementById('baseFee') as HTMLInputElement;
+    const abschlagEl = document.getElementById('currentAbschlag') as HTMLInputElement;
+
+    const hasUsableData =
+      data &&
+      (data.lastReading != null ||
+        (data.settings &&
+          (data.settings.pricePerUnit != null ||
+            data.settings.pricePerKwh != null ||
+            data.settings.abschlag != null)) ||
+        (data.history && data.history.length > 0));
+
+    if (!hasUsableData) {
       this._loadExampleData();
+      this._renderVerbrauchChart(data?.history || []);
       return;
     }
-    if (data.lastReading != null) {
-      const el = document.getElementById('readingMonthAgo') as HTMLInputElement;
-      if (el) el.value = toNumInputVal(data.lastReading);
-    }
-    if (data.settings) {
-      const s = data.settings;
-      const price = s.pricePerUnit ?? s.pricePerKwh;
-      const priceEl = document.getElementById('pricePerUnit') as HTMLInputElement;
-      const baseFeeEl = document.getElementById('baseFee') as HTMLInputElement;
-      const abschlagEl = document.getElementById('currentAbschlag') as HTMLInputElement;
-      if (price && priceEl) priceEl.value = toNumInputVal(price);
-      if (s.baseFee != null && baseFeeEl) baseFeeEl.value = toNumInputVal(s.baseFee);
-      if (s.abschlag && abschlagEl) abschlagEl.value = toNumInputVal(s.abschlag);
-    }
+
+    const s = data.settings;
+    const price = s?.pricePerUnit ?? s?.pricePerKwh;
+
+    if (readingNowEl) readingNowEl.value = '';
+    if (readingMonthAgoEl) readingMonthAgoEl.value = data.lastReading != null ? toNumInputVal(data.lastReading) : '';
+    if (pricePerUnitEl) pricePerUnitEl.value = price != null ? toNumInputVal(price) : '';
+    if (baseFeeEl) baseFeeEl.value = s?.baseFee != null ? toNumInputVal(s.baseFee) : '0';
+    if (abschlagEl) abschlagEl.value = s?.abschlag != null ? toNumInputVal(s.abschlag) : '';
+
+    this._renderVerbrauchChart(data.history || []);
   },
 
   _loadExampleData() {
@@ -362,6 +376,9 @@ const App = {
         'stat-value' + (differenz > 0 ? ' positive' : differenz < 0 ? ' negative' : '');
     }
 
+    // Verbrauch-Chart (Zählerstände-Verlauf)
+    this._renderVerbrauchChart(history);
+
     // Bar chart
     const barKosten = history.length > 1 ? avgKosten : kosten;
     const max = Math.max(barKosten, abschlag, 10);
@@ -381,6 +398,44 @@ const App = {
     if (barMaxLabel) barMaxLabel.textContent = formatEuro(max);
 
     document.getElementById('resultsSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+
+  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number }[]) {
+    const container = document.getElementById('verbrauchChart');
+    const hint = document.getElementById('verbrauchChartHint');
+    if (!container) return;
+
+    const byMonth = new Map<string, { monthName: string; verbrauch: number }>();
+    for (const e of history) {
+      byMonth.set(e.month, { monthName: e.monthName, verbrauch: e.verbrauch ?? 0 });
+    }
+
+    const year = new Date().getFullYear();
+    const unit = CONFIG[this.activeTab].unit;
+    const trackedEntries = [...byMonth.entries()].filter(([k]) => k.startsWith(String(year)));
+    const maxVerbrauch = Math.max(...trackedEntries.map(([, e]) => e.verbrauch || 0), 1);
+
+    if (hint) hint.classList.remove('hidden');
+
+    const rows = MONTH_NAMES.map((name, i) => {
+      const monthKey = `${year}-${String(i + 1).padStart(2, '0')}`;
+      const data = byMonth.get(monthKey);
+      const tracked = !!data;
+      const v = data?.verbrauch ?? 0;
+      const pct = tracked && maxVerbrauch > 0 ? (v / maxVerbrauch) * 100 : 0;
+      const shortName = name.slice(0, 3);
+      const title = tracked ? `${name} ${year}: ${formatNum(v)} ${unit}` : `${name} ${year}: noch nicht getrackt`;
+      return `
+        <div class="verbrauch-chart-row ${tracked ? 'tracked' : 'disabled'}" title="${title}">
+          <span class="verbrauch-chart-month">${shortName}</span>
+          <div class="verbrauch-chart-track">
+            <div class="verbrauch-chart-fill" style="width: ${pct}%"></div>
+          </div>
+          <span class="verbrauch-chart-val">${tracked ? formatNum(v) : '–'}</span>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `<div class="verbrauch-chart-horizontal">${rows}</div>`;
   },
 
   _showTrend(verbrauch: number) {

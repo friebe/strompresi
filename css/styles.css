@@ -223,14 +223,18 @@ body {
 
 .input-with-btn input {
     flex: 1;
+    min-width: 0;
 }
 
 .btn-camera {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
     padding: 0.5rem 0.75rem;
+    min-height: 44px;
+    min-width: 44px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--card);
@@ -239,6 +243,7 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-camera:hover {
@@ -246,17 +251,29 @@ body {
     border-color: var(--accent);
 }
 
+.btn-camera:active {
+    transform: scale(0.97);
+}
+
 .btn-camera-icon {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
 }
 
 .btn-camera-label {
     white-space: nowrap;
 }
 
-@media (max-width: 380px) {
+/* Mobil: nur Icon, größerer Touch-Bereich */
+@media (max-width: 480px) {
     .btn-camera-label { display: none; }
-    .btn-camera { padding: 0.5rem; }
+    .btn-camera {
+        padding: 0.6rem;
+        min-width: 48px;
+        min-height: 48px;
+    }
+    .btn-camera-icon {
+        font-size: 1.35rem;
+    }
 }
 
 /* Camera Modal – Overlay öffnet sich beim Klick auf Foto */
@@ -484,9 +501,9 @@ body {
 .backup-bar {
     display: flex;
     gap: 0.75rem;
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
 }
 
 /* Results */
@@ -709,6 +726,82 @@ body {
     height: 100%;
     border-radius: 6px;
     transition: width 0.5s ease;
+}
+
+/* Verbrauch-Chart (Zählerstände-Verlauf) – horizontal, mobil optimiert */
+.verbrauch-chart {
+    padding: 0.25rem 0;
+}
+
+.verbrauch-chart-horizontal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.verbrauch-chart-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 48px;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 20px;
+}
+
+.verbrauch-chart-month {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.verbrauch-chart-track {
+    height: 12px;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.verbrauch-chart-row.disabled .verbrauch-chart-track {
+    background: rgba(139, 148, 158, 0.15);
+}
+
+.verbrauch-chart-fill {
+    height: 100%;
+    min-width: 0;
+    border-radius: 6px;
+    transition: width 0.35s ease;
+}
+
+.verbrauch-chart-row.tracked .verbrauch-chart-fill {
+    background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+}
+
+.verbrauch-chart-row.disabled .verbrauch-chart-month {
+    opacity: 0.6;
+}
+
+.verbrauch-chart-val {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: right;
+}
+
+.verbrauch-chart-row.tracked .verbrauch-chart-val {
+    color: var(--accent);
+}
+
+.verbrauch-chart-row.disabled .verbrauch-chart-val {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+@media (min-width: 480px) {
+    .verbrauch-chart-row {
+        grid-template-columns: 36px 1fr 56px;
+        min-height: 22px;
+    }
+    .verbrauch-chart-month { font-size: 0.75rem; }
+    .verbrauch-chart-track { height: 14px; }
+    .verbrauch-chart-val { font-size: 0.75rem; }
 }
 
 .bar-cost {
