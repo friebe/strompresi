@@ -25,6 +25,18 @@
     display: none !important;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg);
@@ -729,6 +741,70 @@ body {
 }
 
 /* Verbrauch-Chart (Zählerstände-Verlauf) – horizontal, mobil optimiert */
+.verbrauch-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.verbrauch-chart-header h4 {
+    margin: 0 0 0.25rem 0;
+}
+
+.verbrauch-chart-year-wrap {
+    flex-shrink: 0;
+}
+
+.verbrauch-chart-year {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.verbrauch-chart-year:hover {
+    border-color: var(--accent);
+}
+
+.verbrauch-chart-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: -0.25rem 0 0.5rem 0;
+}
+
+.verbrauch-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.verbrauch-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.verbrauch-legend-dot.covered {
+    background: var(--accent);
+}
+
+.verbrauch-legend-dot.open {
+    background: rgba(139, 148, 158, 0.25);
+}
+
+.verbrauch-chart-legacy-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: -0.25rem 0 0.5rem 0;
+}
+
 .verbrauch-chart {
     padding: 0.25rem 0;
 }
@@ -741,7 +817,7 @@ body {
 
 .verbrauch-chart-row {
     display: grid;
-    grid-template-columns: 28px 1fr 48px;
+    grid-template-columns: 28px 1fr minmax(70px, auto);
     align-items: center;
     gap: 0.5rem;
     min-height: 20px;
@@ -758,6 +834,8 @@ body {
     background: var(--bg);
     border-radius: 6px;
     overflow: hidden;
+    display: flex;
+    flex-direction: row;
 }
 
 .verbrauch-chart-row.disabled .verbrauch-chart-track {
@@ -767,41 +845,79 @@ body {
 .verbrauch-chart-fill {
     height: 100%;
     min-width: 0;
-    border-radius: 6px;
     transition: width 0.35s ease;
 }
 
-.verbrauch-chart-row.tracked .verbrauch-chart-fill {
+.verbrauch-chart-fill:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.verbrauch-chart-fill:last-child:not(:first-child) {
+    border-radius: 0 6px 6px 0;
+}
+
+.verbrauch-chart-fill:only-child {
+    border-radius: 6px;
+}
+
+.verbrauch-chart-covered {
     background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+}
+
+.verbrauch-chart-open {
+    background: rgba(139, 148, 158, 0.25);
 }
 
 .verbrauch-chart-row.disabled .verbrauch-chart-month {
     opacity: 0.6;
 }
 
-.verbrauch-chart-val {
+.verbrauch-chart-val-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
     font-size: 0.7rem;
     font-weight: 600;
     text-align: right;
 }
 
-.verbrauch-chart-row.tracked .verbrauch-chart-val {
+.verbrauch-chart-row.tracked .verbrauch-chart-val-wrap {
     color: var(--accent);
 }
 
-.verbrauch-chart-row.disabled .verbrauch-chart-val {
+.verbrauch-chart-row.disabled .verbrauch-chart-val-wrap {
     color: var(--text-muted);
     opacity: 0.7;
 }
 
+.verbrauch-chart-context {
+    font-size: 0.6rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Mobil: Kontext nur im Tooltip, nicht sichtbar */
+@media (max-width: 479px) {
+    .verbrauch-chart-context {
+        display: none;
+    }
+}
+
 @media (min-width: 480px) {
     .verbrauch-chart-row {
-        grid-template-columns: 36px 1fr 56px;
+        grid-template-columns: 36px 1fr minmax(90px, auto);
         min-height: 22px;
     }
     .verbrauch-chart-month { font-size: 0.75rem; }
     .verbrauch-chart-track { height: 14px; }
-    .verbrauch-chart-val { font-size: 0.75rem; }
+    .verbrauch-chart-val-wrap { font-size: 0.75rem; }
+    .verbrauch-chart-context { font-size: 0.65rem; }
 }
 
 .bar-cost {

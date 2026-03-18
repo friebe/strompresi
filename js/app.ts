@@ -71,6 +71,10 @@ const App = {
     this._maybeShowIOSInstallBanner();
     this._updateTabLabels();
     this._loadStoredData();
+    document.getElementById('verbrauchChartYear')?.addEventListener('change', (e) => {
+      const year = parseInt((e.target as HTMLSelectElement).value, 10);
+      this._renderVerbrauchChartForYear(year);
+    });
   },
 
   _isStandalone(): boolean {
@@ -226,12 +230,14 @@ const App = {
     data.history = data.history || [];
     const lastEntry = data.history[data.history.length - 1];
 
+    const recordedDay = now.getDate();
     if (lastEntry && lastEntry.month === monthKey) {
       lastEntry.verbrauch = verbrauch;
       lastEntry.reading = readingNow;
       lastEntry.monthName = monthName;
+      lastEntry.recordedDay = recordedDay;
     } else {
-      data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow });
+      data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow, recordedDay });
     }
     data.history = data.history.slice(-120);
     data.lastReading = readingNow;
@@ -400,38 +406,94 @@ const App = {
     document.getElementById('resultsSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
 
-  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number }[]) {
+  _renderVerbrauchChartForYear(year: number) {
+    const data = load(this._getStorageKey());
+    const history = data?.history || [];
+    this._renderVerbrauchChart(history, year);
+  },
+
+  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number }[], year?: number) {
     const container = document.getElementById('verbrauchChart');
     const hint = document.getElementById('verbrauchChartHint');
+    const legend = document.getElementById('verbrauchChartLegend');
+    const legacyHint = document.getElementById('verbrauchChartLegacyHint');
+    const yearSelect = document.getElementById('verbrauchChartYear') as HTMLSelectElement | null;
     if (!container) return;
 
-    const byMonth = new Map<string, { monthName: string; verbrauch: number }>();
+    const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number }>();
     for (const e of history) {
-      byMonth.set(e.month, { monthName: e.monthName, verbrauch: e.verbrauch ?? 0 });
+      byMonth.set(e.month, {
+        monthName: e.monthName,
+        verbrauch: e.verbrauch ?? 0,
+        recordedDay: e.recordedDay,
+      });
     }
 
-    const year = new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
+    const displayYear = year ?? currentYear;
     const unit = CONFIG[this.activeTab].unit;
-    const trackedEntries = [...byMonth.entries()].filter(([k]) => k.startsWith(String(year)));
+    const trackedEntries = [...byMonth.entries()].filter(([k]) => k.startsWith(String(displayYear)));
     const maxVerbrauch = Math.max(...trackedEntries.map(([, e]) => e.verbrauch || 0), 1);
 
+    const yearsInHistory = new Set(history.map((e) => parseInt(e.month.slice(0, 4), 10)));
+    yearsInHistory.add(currentYear);
+    const years = [...yearsInHistory].sort((a, b) => b - a);
+
+    if (yearSelect) {
+      yearSelect.innerHTML = years.map((y) => `<option value="${y}" ${y === displayYear ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
     if (hint) hint.classList.remove('hidden');
+    if (legend) legend.classList.remove('hidden');
+
+    const hasLegacyEntries = trackedEntries.some(([, e]) => !e.recordedDay);
+    if (legacyHint) legacyHint.classList.toggle('hidden', !hasLegacyEntries);
+
+    const getDaysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
 
     const rows = MONTH_NAMES.map((name, i) => {
-      const monthKey = `${year}-${String(i + 1).padStart(2, '0')}`;
+      const monthKey = `${displayYear}-${String(i + 1).padStart(2, '0')}`;
       const data = byMonth.get(monthKey);
       const tracked = !!data;
       const v = data?.verbrauch ?? 0;
-      const pct = tracked && maxVerbrauch > 0 ? (v / maxVerbrauch) * 100 : 0;
       const shortName = name.slice(0, 3);
-      const title = tracked ? `${name} ${year}: ${formatNum(v)} ${unit}` : `${name} ${year}: noch nicht getrackt`;
+      let barHtml: string;
+      let contextHtml = '';
+      let title = tracked ? `${name} ${displayYear}: ${formatNum(v)} ${unit}` : `${name} ${displayYear}: noch nicht getrackt`;
+
+      if (tracked && data?.recordedDay != null) {
+        const daysInMonth = getDaysInMonth(displayYear, i + 1);
+        const daysLeft = Math.max(0, daysInMonth - data.recordedDay);
+        const pctCovered = (data.recordedDay / daysInMonth) * 100;
+        const pctOpen = (daysLeft / daysInMonth) * 100;
+        const context = `${data.recordedDay}. · ${daysLeft} Tage offen`;
+        let hochrechnung = '';
+        if (daysLeft > 0 && data.recordedDay > 0) {
+          const projected = Math.round((v / data.recordedDay) * daysInMonth);
+          hochrechnung = ` · Hochgerechnet auf Monatsende: ~${formatNum(projected)} ${unit}`;
+        }
+        title += ` · Abgelesen am ${data.recordedDay}. · ${daysLeft} Tage bis Monatsende${hochrechnung}`;
+        contextHtml = `<span class="verbrauch-chart-context">${context}</span>`;
+        barHtml = `
+            <div class="verbrauch-chart-fill verbrauch-chart-covered" style="width: ${pctCovered}%"></div>
+            <div class="verbrauch-chart-fill verbrauch-chart-open" style="width: ${pctOpen}%"></div>`;
+      } else if (tracked) {
+        const pct = maxVerbrauch > 0 ? (v / maxVerbrauch) * 100 : 0;
+        barHtml = `<div class="verbrauch-chart-fill verbrauch-chart-covered" style="width: ${pct}%"></div>`;
+      } else {
+        barHtml = '';
+      }
+
       return `
-        <div class="verbrauch-chart-row ${tracked ? 'tracked' : 'disabled'}" title="${title}">
+        <div class="verbrauch-chart-row ${tracked ? 'tracked' : 'disabled'}" title="${title.replace(/"/g, '&quot;')}">
           <span class="verbrauch-chart-month">${shortName}</span>
           <div class="verbrauch-chart-track">
-            <div class="verbrauch-chart-fill" style="width: ${pct}%"></div>
+            ${barHtml}
           </div>
-          <span class="verbrauch-chart-val">${tracked ? formatNum(v) : '–'}</span>
+          <span class="verbrauch-chart-val-wrap">
+            ${tracked ? formatNum(v) : '–'}
+            ${contextHtml}
+          </span>
         </div>`;
     }).join('');
 

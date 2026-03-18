@@ -21,6 +21,8 @@ export interface HistoryEntry {
   monthName: string;
   verbrauch: number;
   reading: number;
+  /** Tag im Monat (1–31), an dem abgelesen wurde – für Kontext im Chart */
+  recordedDay?: number;
 }
 
 export interface StoredSettings {

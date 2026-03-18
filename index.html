@@ -72,8 +72,19 @@
             </section>
 
             <section class="visual-card" id="verbrauchChartCard">
-                <h4>Zählerstände & Verbrauch</h4>
+                <div class="verbrauch-chart-header">
+                    <h4>Zählerstände & Verbrauch</h4>
+                    <div class="verbrauch-chart-year-wrap">
+                        <label for="verbrauchChartYear" class="sr-only">Jahr</label>
+                        <select id="verbrauchChartYear" class="verbrauch-chart-year" aria-label="Jahr auswählen"></select>
+                    </div>
+                </div>
                 <p class="bar-hint" id="verbrauchChartHint">Verbrauch pro Monat – so siehst du auf einen Blick, wie sich dein Verbrauch entwickelt hat.</p>
+                <p class="verbrauch-chart-legend" id="verbrauchChartLegend">
+                    <span class="verbrauch-legend-item"><span class="verbrauch-legend-dot covered"></span> Erfasst</span>
+                    <span class="verbrauch-legend-item"><span class="verbrauch-legend-dot open"></span> Tage offen</span>
+                </p>
+                <p class="verbrauch-chart-legacy-hint hidden" id="verbrauchChartLegacyHint">Ältere Einträge ohne Ablesedatum.</p>
                 <div class="verbrauch-chart" id="verbrauchChart">
                     <!-- Dynamisch befüllt -->
                 </div>
