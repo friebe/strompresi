@@ -947,3 +947,126 @@ body {
     font-size: 0.85rem;
     color: var(--text-muted);
 }
+
+/* Druckansicht */
+.print-only {
+    display: none;
+}
+
+.print-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.print-section-date {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.print-table-wrap {
+    margin-bottom: 1.5rem;
+}
+
+.print-table-wrap h4 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.print-table th,
+.print-table td {
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.print-table th {
+    font-weight: 600;
+    background: var(--card);
+}
+
+.print-table tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    body {
+        background: #fff;
+        color: #1a1a1a;
+    }
+
+    .app {
+        max-width: 100%;
+        padding: 0.5rem;
+    }
+
+    .print-section-title {
+        color: #1a1a1a;
+    }
+
+    .print-section-date {
+        color: #555;
+    }
+
+    .print-table th,
+    .print-table td {
+        border-color: #ccc;
+        color: #1a1a1a;
+    }
+
+    .print-table th {
+        background: #f0f0f0;
+    }
+
+    .print-table tr:nth-child(even) td {
+        background: #f9f9f9;
+    }
+
+    .visual-card,
+    .results-section {
+        break-inside: avoid;
+    }
+
+    .verbrauch-chart-row.tracked .verbrauch-chart-val-wrap {
+        color: #0066cc;
+    }
+
+    .verbrauch-chart-track,
+    .verbrauch-chart-fill,
+    .verbrauch-chart-covered,
+    .verbrauch-chart-open {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .verbrauch-chart-covered {
+        background: #4a90d9 !important;
+    }
+
+    .verbrauch-chart-open {
+        background: #ccc !important;
+    }
+
+    .verbrauch-chart-track {
+        background: #e8e8e8 !important;
+    }
+
+    .verbrauch-chart-row.disabled .verbrauch-chart-track {
+        background: #f0f0f0 !important;
+    }
+}

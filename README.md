@@ -16,6 +16,7 @@ Du gibst ein:
 Das Tool berechnet die tatsächlichen Kosten und zeigt dir:
 - Automatisches Backup alle 3 Monate (JSON-Download) – startet erst nach dem ersten manuellen Export; bei Browser-Absturz kannst du das Backup wieder importieren
 - **CSV-Export** – Zählerstände, Verbrauch, Abschlag und Kosten als CSV für Excel/Numbers/Sheets (Vermieter, Steuer, Dokumentation). Die Kosten-Spalte enthält pro Monat: Verbrauch × Arbeitspreis + Grundgebühr (zum Zeitpunkt der Erfassung).
+- **Drucken** – Druckoptimierte Ansicht mit Chart (aktueller Tab) und Tabellen für Strom + Gas (Monat, Ablesedatum, Zählerstand, Verbrauch, Abschlag, Kosten).
 - ✓ **Abschlag passt** – alles gut
 - ↓ **Abschlag senken** – du zahlst zu viel
 - ↑ **Abschlag erhöhen** – Nachzahlung droht
@@ -90,7 +91,7 @@ Der Chart zeigt alle 12 Monate des Jahres mit horizontalen Balken:
 - [x] **CSV-Export** – Zusätzlich zu JSON: Export als CSV für Excel/Numbers/Sheets (Vermieter, Steuer, Energieberatung)
 - [ ] **Tabellenansicht** – Monat | Zählerstand | Verbrauch | Abschlag | Kosten als Tabelle (Chart ergänzen oder umschaltbar)
 - [x] **Kosten pro Monat speichern** – Kosten zum Ablesezeitpunkt in Historie speichern (Preisänderungen verfälschen alte Monate nicht)
-- [ ] **Druckansicht** – Druckoptimierte Ansicht von Chart + Tabelle für Ablage/Nebenkostenabrechnung
+- [x] **Druckansicht** – Druckoptimierte Ansicht von Chart + Tabelle für Ablage/Nebenkostenabrechnung
 - [ ] **Notizen pro Monat** – Optionale Notiz pro Eintrag (z.B. „Urlaub“, „Neuer Kühlschrank“) für Kontext
 - [ ] **Vollständiges Ablesedatum** – Im Export/Tooltip „05.01.2025“ statt nur „5.“ für bessere Dokumentation
 

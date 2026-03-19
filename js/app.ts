@@ -14,7 +14,7 @@ import {
   calcVerdict,
   calcZielAbschlag,
 } from './calc.js';
-import type { TabId } from './types.js';
+import type { HistoryEntry, TabId } from './types.js';
 
 const STORAGE_KEY_STROM = 'strompresi_strom';
 const STORAGE_KEY_GAS = 'strompresi_gas';
@@ -54,6 +54,7 @@ const App = {
     });
     document.getElementById('btnExport')?.addEventListener('click', () => this.exportData());
     document.getElementById('btnExportCsv')?.addEventListener('click', () => this.exportCsv());
+    document.getElementById('btnPrint')?.addEventListener('click', () => this.print());
     document.getElementById('fileImport')?.addEventListener('change', (e) => this.importData(e as Event & { target: HTMLInputElement }));
     document.getElementById('btnCameraNow')?.addEventListener('click', () => this._openCamera('readingNow'));
     document.getElementById('btnCameraAgo')?.addEventListener('click', () => this._openCamera('readingMonthAgo'));
@@ -586,6 +587,74 @@ const App = {
     const gas = load(STORAGE_KEY_GAS) || {};
     const csv = toCsv(strom, gas);
     downloadCsv(csv, `strompresi-${new Date().toISOString().slice(0, 10)}.csv`);
+  },
+
+  print() {
+    const strom = load(STORAGE_KEY_STROM) || {};
+    const gas = load(STORAGE_KEY_GAS) || {};
+    const dateStr = new Date().toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const html = this._buildPrintHtml(strom, gas, dateStr);
+    const el = document.getElementById('printSection');
+    if (el) {
+      el.innerHTML = html;
+      el.setAttribute('aria-hidden', 'false');
+    }
+    window.print();
+  },
+
+  _buildPrintHtml(strom: { history?: HistoryEntry[] }, gas: { history?: HistoryEntry[] }, dateStr: string): string {
+    const formatDate = (month: string, recordedDay?: number) => {
+      const [y, m] = month.split('-').map(Number);
+      const day = recordedDay ?? 1;
+      return `${String(day).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
+    };
+    const tableFor = (history: HistoryEntry[], typ: string, unit: string) => {
+      if (!history?.length) return '';
+      const rows = history
+        .map(
+          (e) =>
+            `<tr>
+              <td>${e.monthName}</td>
+              <td>${formatDate(e.month, e.recordedDay)}</td>
+              <td>${formatNum(e.reading ?? 0, 2)}</td>
+              <td>${formatNum(e.verbrauch ?? 0)}</td>
+              <td>${unit}</td>
+              <td>${e.abschlag != null ? formatEuro(e.abschlag) : '–'}</td>
+              <td>${e.kosten != null ? formatEuro(e.kosten) : '–'}</td>
+            </tr>`
+        )
+        .join('');
+      return `
+        <div class="print-table-wrap">
+          <h4>${typ}</h4>
+          <table class="print-table">
+            <thead>
+              <tr>
+                <th>Monat</th>
+                <th>Ablesedatum</th>
+                <th>Zählerstand</th>
+                <th>Verbrauch</th>
+                <th>Einheit</th>
+                <th>Abschlag</th>
+                <th>Kosten</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    };
+    const stromTable = tableFor(strom.history ?? [], 'Strom', 'kWh');
+    const gasTable = tableFor(gas.history ?? [], 'Gas', 'm³');
+    const hasData = stromTable || gasTable;
+    return `
+      <div class="print-section-title">Strompresi – Zählerstände & Verbrauch</div>
+      <div class="print-section-date">Stand: ${dateStr}</div>
+      ${hasData ? stromTable + gasTable : '<p>Keine Daten zum Drucken.</p>'}
+    `;
   },
 
   _downloadBackup() {
