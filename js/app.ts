@@ -419,14 +419,11 @@ const App = {
     this._renderVerbrauchChart(history, year);
   },
 
-  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }[], year?: number) {
-    const container = document.getElementById('verbrauchChart');
-    const hint = document.getElementById('verbrauchChartHint');
-    const legend = document.getElementById('verbrauchChartLegend');
-    const legacyHint = document.getElementById('verbrauchChartLegacyHint');
-    const yearSelect = document.getElementById('verbrauchChartYear') as HTMLSelectElement | null;
-    if (!container) return;
-
+  _buildChartHtml(
+    history: { month: string; monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }[],
+    year: number,
+    unit: string
+  ): string {
     const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }>();
     for (const e of history) {
       byMonth.set(e.month, {
@@ -438,40 +435,23 @@ const App = {
       });
     }
 
-    const currentYear = new Date().getFullYear();
-    const displayYear = year ?? currentYear;
-    const unit = CONFIG[this.activeTab].unit;
-    const trackedEntries = [...byMonth.entries()].filter(([k]) => k.startsWith(String(displayYear)));
+    const trackedEntries = [...byMonth.entries()].filter(([k]) => k.startsWith(String(year)));
     const maxVerbrauch = Math.max(...trackedEntries.map(([, e]) => e.verbrauch || 0), 1);
-
-    const yearsInHistory = new Set(history.map((e) => parseInt(e.month.slice(0, 4), 10)));
-    yearsInHistory.add(currentYear);
-    const years = [...yearsInHistory].sort((a, b) => b - a);
-
-    if (yearSelect) {
-      yearSelect.innerHTML = years.map((y) => `<option value="${y}" ${y === displayYear ? 'selected' : ''}>${y}</option>`).join('');
-    }
-
-    if (hint) hint.classList.remove('hidden');
-    if (legend) legend.classList.remove('hidden');
-
-    const hasLegacyEntries = trackedEntries.some(([, e]) => !e.recordedDay);
-    if (legacyHint) legacyHint.classList.toggle('hidden', !hasLegacyEntries);
 
     const getDaysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
 
     const rows = MONTH_NAMES.map((name, i) => {
-      const monthKey = `${displayYear}-${String(i + 1).padStart(2, '0')}`;
+      const monthKey = `${year}-${String(i + 1).padStart(2, '0')}`;
       const data = byMonth.get(monthKey);
       const tracked = !!data;
       const v = data?.verbrauch ?? 0;
       const shortName = name.slice(0, 3);
       let barHtml: string;
       let contextHtml = '';
-      let title = tracked ? `${name} ${displayYear}: ${formatNum(v)} ${unit}` : `${name} ${displayYear}: noch nicht getrackt`;
+      let title = tracked ? `${name} ${year}: ${formatNum(v)} ${unit}` : `${name} ${year}: noch nicht getrackt`;
 
       if (tracked && data?.recordedDay != null) {
-        const daysInMonth = getDaysInMonth(displayYear, i + 1);
+        const daysInMonth = getDaysInMonth(year, i + 1);
         const daysLeft = Math.max(0, daysInMonth - data.recordedDay);
         const pctCovered = (data.recordedDay / daysInMonth) * 100;
         const pctOpen = (daysLeft / daysInMonth) * 100;
@@ -518,7 +498,41 @@ const App = {
         </div>`;
     }).join('');
 
-    container.innerHTML = `<div class="verbrauch-chart-horizontal">${rows}</div>`;
+    return `<div class="verbrauch-chart-horizontal">${rows}</div>`;
+  },
+
+  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }[], year?: number) {
+    const container = document.getElementById('verbrauchChart');
+    const hint = document.getElementById('verbrauchChartHint');
+    const legend = document.getElementById('verbrauchChartLegend');
+    const legacyHint = document.getElementById('verbrauchChartLegacyHint');
+    const yearSelect = document.getElementById('verbrauchChartYear') as HTMLSelectElement | null;
+    if (!container) return;
+
+    const currentYear = new Date().getFullYear();
+    const displayYear = year ?? currentYear;
+    const unit = CONFIG[this.activeTab].unit;
+
+    const yearsInHistory = new Set(history.map((e) => parseInt(e.month.slice(0, 4), 10)));
+    yearsInHistory.add(currentYear);
+    const years = [...yearsInHistory].sort((a, b) => b - a);
+
+    if (yearSelect) {
+      yearSelect.innerHTML = years.map((y) => `<option value="${y}" ${y === displayYear ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
+    if (hint) hint.classList.remove('hidden');
+    if (legend) legend.classList.remove('hidden');
+
+    const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }>();
+    for (const e of history) {
+      byMonth.set(e.month, { monthName: e.monthName, verbrauch: e.verbrauch ?? 0, recordedDay: e.recordedDay, abschlag: e.abschlag, kosten: e.kosten });
+    }
+    const trackedEntries = [...byMonth.entries()].filter(([k]) => k.startsWith(String(displayYear)));
+    const hasLegacyEntries = trackedEntries.some(([, e]) => !e.recordedDay);
+    if (legacyHint) legacyHint.classList.toggle('hidden', !hasLegacyEntries);
+
+    container.innerHTML = this._buildChartHtml(history, displayYear, unit);
   },
 
   _showTrend(verbrauch: number) {
@@ -607,6 +621,11 @@ const App = {
   },
 
   _buildPrintHtml(strom: { history?: HistoryEntry[] }, gas: { history?: HistoryEntry[] }, dateStr: string): string {
+    const currentYear = new Date().getFullYear();
+    const stromChartHtml = (strom.history?.length ?? 0) > 0 ? this._buildChartHtml(strom.history ?? [], currentYear, 'kWh') : '';
+    const gasChartHtml = (gas.history?.length ?? 0) > 0 ? this._buildChartHtml(gas.history ?? [], currentYear, 'm³') : '';
+    const hasCharts = stromChartHtml || gasChartHtml;
+
     const formatDate = (month: string, recordedDay?: number) => {
       const [y, m] = month.split('-').map(Number);
       const day = recordedDay ?? 1;
@@ -618,6 +637,7 @@ const App = {
         .map(
           (e) =>
             `<tr>
+              <td>${typ}</td>
               <td>${e.monthName}</td>
               <td>${formatDate(e.month, e.recordedDay)}</td>
               <td>${formatNum(e.reading ?? 0, 2)}</td>
@@ -634,6 +654,7 @@ const App = {
           <table class="print-table">
             <thead>
               <tr>
+                <th>Typ</th>
                 <th>Monat</th>
                 <th>Ablesedatum</th>
                 <th>Zählerstand</th>
@@ -650,10 +671,20 @@ const App = {
     const stromTable = tableFor(strom.history ?? [], 'Strom', 'kWh');
     const gasTable = tableFor(gas.history ?? [], 'Gas', 'm³');
     const hasData = stromTable || gasTable;
+
+    const chartsSection = hasCharts
+      ? `
+      <div class="print-charts-row">
+        ${stromChartHtml ? `<div class="print-chart-col"><h4>Strom (kWh)</h4><div class="verbrauch-chart">${stromChartHtml}</div></div>` : ''}
+        ${gasChartHtml ? `<div class="print-chart-col"><h4>Gas (m³)</h4><div class="verbrauch-chart">${gasChartHtml}</div></div>` : ''}
+      </div>`
+      : '';
+
     return `
       <div class="print-section-title">Strompresi – Zählerstände & Verbrauch</div>
       <div class="print-section-date">Stand: ${dateStr}</div>
-      ${hasData ? stromTable + gasTable : '<p>Keine Daten zum Drucken.</p>'}
+      ${chartsSection}
+      ${hasData ? stromTable + gasTable : hasCharts ? '' : '<p>Keine Daten zum Drucken.</p>'}
     `;
   },
 
