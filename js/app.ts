@@ -236,8 +236,9 @@ const App = {
       lastEntry.reading = readingNow;
       lastEntry.monthName = monthName;
       lastEntry.recordedDay = recordedDay;
+      lastEntry.abschlag = settings.abschlag;
     } else {
-      data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow, recordedDay });
+      data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow, recordedDay, abschlag: settings.abschlag });
     }
     data.history = data.history.slice(-120);
     data.lastReading = readingNow;
@@ -412,7 +413,7 @@ const App = {
     this._renderVerbrauchChart(history, year);
   },
 
-  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number }[], year?: number) {
+  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number }[], year?: number) {
     const container = document.getElementById('verbrauchChart');
     const hint = document.getElementById('verbrauchChartHint');
     const legend = document.getElementById('verbrauchChartLegend');
@@ -420,12 +421,13 @@ const App = {
     const yearSelect = document.getElementById('verbrauchChartYear') as HTMLSelectElement | null;
     if (!container) return;
 
-    const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number }>();
+    const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number }>();
     for (const e of history) {
       byMonth.set(e.month, {
         monthName: e.monthName,
         verbrauch: e.verbrauch ?? 0,
         recordedDay: e.recordedDay,
+        abschlag: e.abschlag,
       });
     }
 
@@ -473,6 +475,9 @@ const App = {
           hochrechnung = ` · Hochgerechnet auf Monatsende: ~${formatNum(projected)} ${unit}`;
         }
         title += ` · Abgelesen am ${data.recordedDay}. · ${daysLeft} Tage bis Monatsende${hochrechnung}`;
+        if (data.abschlag != null && data.abschlag > 0) {
+          title += ` · Abschlag: ${formatEuro(data.abschlag)}`;
+        }
         contextHtml = `<span class="verbrauch-chart-context">${context}</span>`;
         barHtml = `
             <div class="verbrauch-chart-fill verbrauch-chart-covered" style="width: ${pctCovered}%"></div>
@@ -480,6 +485,9 @@ const App = {
       } else if (tracked) {
         const pct = maxVerbrauch > 0 ? (v / maxVerbrauch) * 100 : 0;
         barHtml = `<div class="verbrauch-chart-fill verbrauch-chart-covered" style="width: ${pct}%"></div>`;
+        if (data.abschlag != null && data.abschlag > 0) {
+          title += ` · Abschlag: ${formatEuro(data.abschlag)}`;
+        }
       } else {
         barHtml = '';
       }

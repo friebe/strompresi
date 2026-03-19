@@ -23,6 +23,8 @@ export interface HistoryEntry {
   reading: number;
   /** Tag im Monat (1–31), an dem abgelesen wurde – für Kontext im Chart */
   recordedDay?: number;
+  /** Monatlicher Abschlag zum Zeitpunkt der Erfassung */
+  abschlag?: number;
 }
 
 export interface StoredSettings {
