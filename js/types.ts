@@ -25,6 +25,8 @@ export interface HistoryEntry {
   recordedDay?: number;
   /** Monatlicher Abschlag zum Zeitpunkt der Erfassung */
   abschlag?: number;
+  /** Kosten zum Zeitpunkt der Erfassung (Verbrauch × Arbeitspreis + Grundgebühr) */
+  kosten?: number;
 }
 
 export interface StoredSettings {

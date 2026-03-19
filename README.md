@@ -15,6 +15,7 @@ Du gibst ein:
 
 Das Tool berechnet die tatsächlichen Kosten und zeigt dir:
 - Automatisches Backup alle 3 Monate (JSON-Download) – startet erst nach dem ersten manuellen Export; bei Browser-Absturz kannst du das Backup wieder importieren
+- **CSV-Export** – Zählerstände, Verbrauch, Abschlag und Kosten als CSV für Excel/Numbers/Sheets (Vermieter, Steuer, Dokumentation). Die Kosten-Spalte enthält pro Monat: Verbrauch × Arbeitspreis + Grundgebühr (zum Zeitpunkt der Erfassung).
 - ✓ **Abschlag passt** – alles gut
 - ↓ **Abschlag senken** – du zahlst zu viel
 - ↑ **Abschlag erhöhen** – Nachzahlung droht
@@ -40,7 +41,10 @@ Der Chart zeigt alle 12 Monate des Jahres mit horizontalen Balken:
 1. **Verbrauch** = Zählerstand heute − letzter Zählerstand  
    *Beispiel:* 4523 − 4380 = **143 kWh** (Zeitraum beliebig, z.B. ~1 Monat)
 2. **Kosten** = Verbrauch × Arbeitspreis + Grundgebühr  
-   *Beispiel:* 143 × 0,32 + 12 = **57,76 €**
+   *Beispiele:*
+   - Strom: 143 kWh × 0,32 €/kWh + 12 € Grundgebühr = **57,76 €**
+   - Gas: 120 m³ × 0,12 €/m³ + 15 € Grundgebühr = **29,40 €**
+   - Ohne Grundgebühr: 100 kWh × 0,28 €/kWh = **28 €**
 
 **Mit Historie (≥2 Monate):** Die Empfehlung basiert auf dem **Durchschnitt** aller gespeicherten Monate – nicht auf einem einzelnen Monat. Das macht die Empfehlung aussagekräftiger und robuster gegenüber Saisonschwankungen (z.B. Gas im Winter) oder Ausreißern. Es werden maximal 120 Monate berücksichtigt.
 
@@ -79,7 +83,18 @@ Der Chart zeigt alle 12 Monate des Jahres mit horizontalen Balken:
 - `npm run build` – Production-Build in `dist/`
 - `npm run test` – Unit-Tests (Vitest)
 
-## Offene Todos / Verbesserungspotenzial
+## Offene Features
+
+### Dokumentation & Export
+
+- [x] **CSV-Export** – Zusätzlich zu JSON: Export als CSV für Excel/Numbers/Sheets (Vermieter, Steuer, Energieberatung)
+- [ ] **Tabellenansicht** – Monat | Zählerstand | Verbrauch | Abschlag | Kosten als Tabelle (Chart ergänzen oder umschaltbar)
+- [x] **Kosten pro Monat speichern** – Kosten zum Ablesezeitpunkt in Historie speichern (Preisänderungen verfälschen alte Monate nicht)
+- [ ] **Druckansicht** – Druckoptimierte Ansicht von Chart + Tabelle für Ablage/Nebenkostenabrechnung
+- [ ] **Notizen pro Monat** – Optionale Notiz pro Eintrag (z.B. „Urlaub“, „Neuer Kühlschrank“) für Kontext
+- [ ] **Vollständiges Ablesedatum** – Im Export/Tooltip „05.01.2025“ statt nur „5.“ für bessere Dokumentation
+
+### Technik & UX
 
 - [ ] **Import-Legacy dokumentieren** – Der Fall `data.history` ohne `strom`/`gas` in `importAll` (Rückwärtskompatibilität) im Code oder README erklären
 - [ ] **localStorage-Quota** – Bei sehr langer Historie (z.B. 120 Monate) könnte Speicher knapp werden; evtl. Fehlerbehandlung oder Hinweis

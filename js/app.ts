@@ -4,6 +4,7 @@
 import { CONFIG, MONTH_NAMES } from './config.js';
 import { toNumInputVal, parseNumFromString, formatEuro, formatNum, roundGlatt } from './utils.js';
 import { load, save, exportAll, importAll, getLastBackupDate, setLastBackupDate } from './storage.js';
+import { toCsv, downloadCsv } from './csv.js';
 import { recognizeMeterReading } from './ocr.js';
 import {
   calcVerbrauch,
@@ -52,6 +53,7 @@ const App = {
       });
     });
     document.getElementById('btnExport')?.addEventListener('click', () => this.exportData());
+    document.getElementById('btnExportCsv')?.addEventListener('click', () => this.exportCsv());
     document.getElementById('fileImport')?.addEventListener('change', (e) => this.importData(e as Event & { target: HTMLInputElement }));
     document.getElementById('btnCameraNow')?.addEventListener('click', () => this._openCamera('readingNow'));
     document.getElementById('btnCameraAgo')?.addEventListener('click', () => this._openCamera('readingMonthAgo'));
@@ -227,6 +229,8 @@ const App = {
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const monthName = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
 
+    const kosten = calcKosten(verbrauch, settings.pricePerUnit, settings.baseFee);
+
     data.history = data.history || [];
     const lastEntry = data.history[data.history.length - 1];
 
@@ -237,8 +241,9 @@ const App = {
       lastEntry.monthName = monthName;
       lastEntry.recordedDay = recordedDay;
       lastEntry.abschlag = settings.abschlag;
+      lastEntry.kosten = kosten;
     } else {
-      data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow, recordedDay, abschlag: settings.abschlag });
+      data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow, recordedDay, abschlag: settings.abschlag, kosten });
     }
     data.history = data.history.slice(-120);
     data.lastReading = readingNow;
@@ -413,7 +418,7 @@ const App = {
     this._renderVerbrauchChart(history, year);
   },
 
-  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number }[], year?: number) {
+  _renderVerbrauchChart(history: { month: string; monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }[], year?: number) {
     const container = document.getElementById('verbrauchChart');
     const hint = document.getElementById('verbrauchChartHint');
     const legend = document.getElementById('verbrauchChartLegend');
@@ -421,13 +426,14 @@ const App = {
     const yearSelect = document.getElementById('verbrauchChartYear') as HTMLSelectElement | null;
     if (!container) return;
 
-    const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number }>();
+    const byMonth = new Map<string, { monthName: string; verbrauch: number; recordedDay?: number; abschlag?: number; kosten?: number }>();
     for (const e of history) {
       byMonth.set(e.month, {
         monthName: e.monthName,
         verbrauch: e.verbrauch ?? 0,
         recordedDay: e.recordedDay,
         abschlag: e.abschlag,
+        kosten: e.kosten,
       });
     }
 
@@ -478,6 +484,9 @@ const App = {
         if (data.abschlag != null && data.abschlag > 0) {
           title += ` · Abschlag: ${formatEuro(data.abschlag)}`;
         }
+        if (data.kosten != null && data.kosten > 0) {
+          title += ` · Kosten: ${formatEuro(data.kosten)}`;
+        }
         contextHtml = `<span class="verbrauch-chart-context">${context}</span>`;
         barHtml = `
             <div class="verbrauch-chart-fill verbrauch-chart-covered" style="width: ${pctCovered}%"></div>
@@ -487,6 +496,9 @@ const App = {
         barHtml = `<div class="verbrauch-chart-fill verbrauch-chart-covered" style="width: ${pct}%"></div>`;
         if (data.abschlag != null && data.abschlag > 0) {
           title += ` · Abschlag: ${formatEuro(data.abschlag)}`;
+        }
+        if (data.kosten != null && data.kosten > 0) {
+          title += ` · Kosten: ${formatEuro(data.kosten)}`;
         }
       } else {
         barHtml = '';
@@ -567,6 +579,13 @@ const App = {
   exportData() {
     this._downloadBackup();
     setLastBackupDate();
+  },
+
+  exportCsv() {
+    const strom = load(STORAGE_KEY_STROM) || {};
+    const gas = load(STORAGE_KEY_GAS) || {};
+    const csv = toCsv(strom, gas);
+    downloadCsv(csv, `strompresi-${new Date().toISOString().slice(0, 10)}.csv`);
   },
 
   _downloadBackup() {

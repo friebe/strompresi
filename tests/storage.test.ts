@@ -33,6 +33,19 @@ describe('storage', () => {
       expect(load(STROM_KEY)?.history?.[0].abschlag).toBe(85);
     });
 
+    it('speichert und lädt Historie mit kosten pro Monat', () => {
+      const data = {
+        history: [
+          { month: '2025-01', monthName: 'Januar 2025', verbrauch: 120, reading: 4523, kosten: 50.4 },
+          { month: '2025-02', monthName: 'Februar 2025', verbrauch: 115, reading: 4638, kosten: 48.8 },
+        ],
+        lastReading: 4638,
+      };
+      save(STROM_KEY, data);
+      expect(load(STROM_KEY)).toEqual(data);
+      expect(load(STROM_KEY)?.history?.[0].kosten).toBe(50.4);
+    });
+
     it('gibt null bei ungültigem JSON zurück', () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       localStorage.setItem(STROM_KEY, 'invalid json');
