@@ -98,7 +98,8 @@ const App = {
     const textEl = document.getElementById('installBannerText');
     const btnInstall = document.getElementById('btnInstall');
     if (!banner || !textEl) return;
-    if (textEl) textEl.textContent = 'Strompresi zum Home-Bildschirm hinzufügen: Tippe auf das Teilen-Symbol unten und wähle „Zum Home-Bildschirm hinzufügen“.';
+    textEl.textContent =
+      'Strompresi installieren: Tippe unten auf „Teilen“ (oder das Kasten-Symbol) und wähle „Zum Home-Bildschirm hinzufügen“.';
     if (btnInstall) btnInstall.style.display = 'none';
     banner.classList.remove('hidden');
   },

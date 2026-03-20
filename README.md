@@ -80,6 +80,7 @@ Der Chart zeigt alle 12 Monate des Jahres mit horizontalen Balken:
 - **TypeScript** + Vite (ES-Module, Hot Reload)
 - Vanilla HTML/CSS/TS
 - PWA-fähig: Installierbar, Offline-Nutzung via Service Worker
+- **Mobile installieren:** Android Chrome zeigt bei Bedarf „App installieren“. iOS: Teilen-Symbol → „Zum Home-Bildschirm hinzufügen“.
 - `npm run dev` – Entwicklungsserver (Port 5173)
 - `npm run build` – Production-Build in `dist/`
 - `npm run test` – Unit-Tests (Vitest)
