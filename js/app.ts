@@ -18,7 +18,7 @@ import type { HistoryEntry, TabId } from './types.js';
 
 const STORAGE_KEY_STROM = 'strompresi_strom';
 const STORAGE_KEY_GAS = 'strompresi_gas';
-const INSTALL_BANNER_DISMISSED_KEY = 'strompresi_install_banner_dismissed';
+const INSTALL_BANNER_DISMISSED_KEY = 'strompresi_install_banner_dismissed_v2';
 const BACKUP_INTERVAL_DAYS = 90; // Auto-Backup alle 3 Monate
 
 interface ResultsParams {
@@ -33,6 +33,14 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
+
+// Capture beforeinstallprompt as early as possible (before DOMContentLoaded).
+// The event fires only once and would be lost if registered inside init().
+let _earlyInstallPrompt: BeforeInstallPromptEvent | null = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _earlyInstallPrompt = e as BeforeInstallPromptEvent;
+});
 
 const App = {
   activeTab: 'strom' as TabId,
@@ -69,6 +77,12 @@ const App = {
     });
     document.getElementById('btnInstall')?.addEventListener('click', () => this._promptInstall());
     document.getElementById('btnInstallClose')?.addEventListener('click', () => this._dismissInstallBanner());
+    // Pick up any prompt captured before DOMContentLoaded fired.
+    if (_earlyInstallPrompt) {
+      this._onBeforeInstallPrompt(_earlyInstallPrompt);
+      _earlyInstallPrompt = null;
+    }
+    // Also listen for future firings (e.g. after app uninstall).
     window.addEventListener('beforeinstallprompt', (e) => this._onBeforeInstallPrompt(e as BeforeInstallPromptEvent));
     window.addEventListener('appinstalled', () => this._hideInstallBanner());
     this._maybeShowIOSInstallBanner();
@@ -136,12 +150,17 @@ const App = {
     const prompt = this._deferredInstallPrompt;
     if (!prompt) return;
     await prompt.prompt();
+    const { outcome } = await prompt.userChoice;
     this._hideInstallBanner();
-    try {
-      localStorage.setItem(INSTALL_BANNER_DISMISSED_KEY, '1');
-    } catch {
-      /* ignore */
+    if (outcome === 'accepted') {
+      try {
+        localStorage.setItem(INSTALL_BANNER_DISMISSED_KEY, '1');
+      } catch {
+        /* ignore */
+      }
     }
+    // On 'dismissed': banner hides temporarily but key is not persisted,
+    // so it can reappear on the next visit.
   },
 
   _getStorageKey(): string {

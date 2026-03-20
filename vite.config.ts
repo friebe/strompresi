@@ -24,37 +24,48 @@ export default defineConfig(({ mode }) => {
   },
   plugins: [
     {
-      name: 'manifest-base-path',
+      name: 'pwa-post-build',
       closeBundle() {
+        const isProd = base !== './';
+
+        // Step 1: replace __BASE__ placeholder in sw.js
         const swPath = join(process.cwd(), 'dist', 'sw.js');
         try {
-          let sw = readFileSync(swPath, 'utf-8');
-          sw = sw.replace(/__BASE__/g, base === './' ? '' : base);
-          writeFileSync(swPath, sw);
-        } catch {
-          /* ignore */
+          const sw = readFileSync(swPath, 'utf-8');
+          writeFileSync(swPath, sw.replace(/__BASE__/g, isProd ? base : ''));
+        } catch (err) {
+          console.warn('[pwa] sw.js update failed:', err);
         }
-        if (base === './') return;
+
+        if (!isProd) return;
+
+        // Step 2: patch manifest.json via JSON parse — no fragile regex on raw text
         const manifestPath = join(process.cwd(), 'dist', 'manifest.json');
         try {
-          let content = readFileSync(manifestPath, 'utf-8');
-          const v = '3';
-          content = content.replace(/"icon-maskable-192\.png"/g, `"${base}icon-maskable-192.png?v=${v}"`);
-          content = content.replace(/"icon-maskable-512\.png"/g, `"${base}icon-maskable-512.png?v=${v}"`);
-          content = content.replace(/"\.\/index\.html"/g, `"${base}index.html"`);
-          content = content.replace(/"scope":\s*"\.\/"/, `"scope": "${base}"`);
-          if (!content.includes('"id"')) {
-            content = content.replace(/"name":/, `"id": "${base}",\n  "name":`);
-          }
-          writeFileSync(manifestPath, content);
+          const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as {
+            id?: string;
+            start_url?: string;
+            scope?: string;
+            icons: { src: string; sizes: string; type: string; purpose: string }[];
+          };
+          manifest.id = base;
+          manifest.start_url = `${base}index.html`;
+          manifest.scope = base;
+          manifest.icons = manifest.icons.map((icon) => ({ ...icon, src: `${base}${icon.src}?v=4` }));
+          writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        } catch (err) {
+          console.warn('[pwa] manifest.json update failed:', err);
+        }
 
-          const indexPath = join(process.cwd(), 'dist', 'index.html');
-          let html = readFileSync(indexPath, 'utf-8');
-          html = html.replace(/href="\.\/manifest\.json"/, `href="${base}manifest.json"`);
-          html = html.replace(/register\('\.\/sw\.js'\)/, `register('${base}sw.js')`);
-          writeFileSync(indexPath, html);
-        } catch {
-          /* ignore */
+        // Step 3: fix SW registration path in the inline <script> of index.html
+        // Vite transforms asset href/src attributes automatically via base, but does
+        // NOT rewrite plain string literals inside <script> blocks.
+        const indexPath = join(process.cwd(), 'dist', 'index.html');
+        try {
+          const html = readFileSync(indexPath, 'utf-8');
+          writeFileSync(indexPath, html.replace(/register\('\.\/sw\.js'\)/, `register('${base}sw.js')`));
+        } catch (err) {
+          console.warn('[pwa] index.html update failed:', err);
         }
       },
     },
