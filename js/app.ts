@@ -77,6 +77,10 @@ const App = {
     });
     document.getElementById('btnInstall')?.addEventListener('click', () => this._promptInstall());
     document.getElementById('btnInstallClose')?.addEventListener('click', () => this._dismissInstallBanner());
+    document.getElementById('btnUpdate')?.addEventListener('click', () => window.location.reload());
+    document.getElementById('btnUpdateClose')?.addEventListener('click', () => {
+      document.getElementById('updateBanner')?.classList.add('hidden');
+    });
     // Pick up any prompt captured before DOMContentLoaded fired.
     if (_earlyInstallPrompt) {
       this._onBeforeInstallPrompt(_earlyInstallPrompt);
@@ -85,6 +89,15 @@ const App = {
     // Also listen for future firings (e.g. after app uninstall).
     window.addEventListener('beforeinstallprompt', (e) => this._onBeforeInstallPrompt(e as BeforeInstallPromptEvent));
     window.addEventListener('appinstalled', () => this._hideInstallBanner());
+    // Show update banner when a new Service Worker takes over.
+    // hadController is true on repeat visits (old SW was in control) — that means it's an update.
+    // On a fresh first install hadController is false, so no banner is shown.
+    if ('serviceWorker' in navigator) {
+      const hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController) this._showUpdateBanner();
+      });
+    }
     this._maybeShowIOSInstallBanner();
     this._updateTabLabels();
     this._loadStoredData();
@@ -128,6 +141,11 @@ const App = {
 
   _showInstallBanner() {
     const banner = document.getElementById('installBanner');
+    if (banner) banner.classList.remove('hidden');
+  },
+
+  _showUpdateBanner() {
+    const banner = document.getElementById('updateBanner');
     if (banner) banner.classList.remove('hidden');
   },
 
