@@ -21,20 +21,47 @@ export function extractMeterReading(text: string | null | undefined): string | n
 }
 
 /**
- * Führt OCR auf einem Bild (Canvas/Blob) aus
+ * Konvertiert Canvas zu Graustufen und erhöht den Kontrast.
+ * Verbessert die Erkennungsgenauigkeit für Ziffern deutlich.
+ */
+function preprocessCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
+  const dst = document.createElement('canvas');
+  dst.width = src.width;
+  dst.height = src.height;
+  const ctx = dst.getContext('2d')!;
+  ctx.drawImage(src, 0, 0);
+  const img = ctx.getImageData(0, 0, dst.width, dst.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const v = Math.max(0, Math.min(255, (gray - 128) * 1.6 + 128));
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  ctx.putImageData(img, 0, 0);
+  return dst;
+}
+
+/**
+ * Führt OCR auf einem Bild (Canvas/Blob) aus.
+ * Wirft einen beschreibenden Fehler wenn offline.
  */
 export async function recognizeMeterReading(
   imageSource: HTMLCanvasElement | Blob
 ): Promise<string | null> {
+  if (!navigator.onLine) {
+    throw new Error('OCR benötigt eine Internetverbindung (Tesseract.js wird nachgeladen).');
+  }
   const Tesseract: any = await import(
     // @ts-ignore
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js'
   );
   const worker = await Tesseract.createWorker('eng', 1, { logger: () => {} });
   try {
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789.,' });
+    const src = imageSource instanceof HTMLCanvasElement ? preprocessCanvas(imageSource) : imageSource;
     const {
       data: { text },
-    } = await worker.recognize(imageSource);
+    } = await worker.recognize(src);
     await worker.terminate();
     return extractMeterReading(text);
   } catch (e) {

@@ -750,6 +750,8 @@ const App = {
   },
 
   async _openCamera(targetFieldId: string) {
+    // Dismiss the keyboard so it doesn't squash the modal on mobile.
+    (document.activeElement as HTMLElement)?.blur();
     this._cameraTarget = targetFieldId;
     const modal = document.getElementById('cameraModal');
     const video = document.getElementById('cameraVideo') as HTMLVideoElement;
@@ -804,8 +806,9 @@ const App = {
       } else if (status) {
         status.textContent = 'Keine Zahl erkannt. Bitte erneut fotografieren oder manuell eingeben.';
       }
-    } catch {
-      if (status) status.textContent = 'Fehler bei der Erkennung. Bitte manuell eingeben.';
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Fehler bei der Erkennung.';
+      if (status) status.textContent = `${msg} Bitte manuell eingeben.`;
     }
   },
 
