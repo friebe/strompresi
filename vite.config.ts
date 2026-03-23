@@ -4,6 +4,9 @@ import { join } from 'path';
 
 export default defineConfig(({ mode }) => {
   const base = mode === 'production' ? '/strompresi/' : './';
+  // Unique build ID injected into sw.js on every build so the browser
+  // always sees a changed sw.js file and triggers the SW update flow.
+  const buildId = Date.now().toString(36);
   return {
   base,
   test: {
@@ -28,11 +31,18 @@ export default defineConfig(({ mode }) => {
       closeBundle() {
         const isProd = base !== './';
 
-        // Step 1: replace __BASE__ placeholder in sw.js
+        // Step 1: replace placeholders in sw.js
+        //   __BASE__     → absolute base path (or '' for dev)
+        //   __CACHE_ID__ → unique per-build cache name so the browser always
+        //                  detects a changed sw.js and triggers the update flow
         const swPath = join(process.cwd(), 'dist', 'sw.js');
         try {
+          const cacheId = isProd ? `strompresi-${buildId}` : 'strompresi-dev';
           const sw = readFileSync(swPath, 'utf-8');
-          writeFileSync(swPath, sw.replace(/__BASE__/g, isProd ? base : ''));
+          writeFileSync(swPath,
+            sw.replace(/__BASE__/g, isProd ? base : '')
+              .replace(/__CACHE_ID__/g, cacheId)
+          );
         } catch (err) {
           console.warn('[pwa] sw.js update failed:', err);
         }

@@ -94,8 +94,14 @@ const App = {
     // On a fresh first install hadController is false, so no banner is shown.
     if ('serviceWorker' in navigator) {
       const hadController = !!navigator.serviceWorker.controller;
+      // controllerchange fires when the new SW takes over via clients.claim()
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (hadController) this._showUpdateBanner();
+      });
+      // SW_UPDATED message is sent by the new SW after clients.claim() —
+      // secondary detection in case controllerchange was missed.
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SW_UPDATED' && hadController) this._showUpdateBanner();
       });
     }
     this._maybeShowIOSInstallBanner();
