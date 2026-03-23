@@ -5,7 +5,7 @@ import { CONFIG, MONTH_NAMES } from './config.js';
 import { toNumInputVal, parseNumFromString, formatEuro, formatNum, roundGlatt } from './utils.js';
 import { load, save, exportAll, importAll, getLastBackupDate, setLastBackupDate } from './storage.js';
 import { toCsv, downloadCsv } from './csv.js';
-import { recognizeMeterReading } from './ocr.js';
+import { recognizeMeterReading, type CropRect } from './ocr.js';
 import {
   calcVerbrauch,
   calcKosten,
@@ -785,6 +785,35 @@ const App = {
     if (video) video.srcObject = null;
   },
 
+  _getVideoCropRect(video: HTMLVideoElement): CropRect {
+    const dW = video.clientWidth;
+    const dH = video.clientHeight;
+    const nW = video.videoWidth;
+    const nH = video.videoHeight;
+    if (!nW || !nH) return { left: 0, top: 0, width: nW, height: nH };
+
+    const dAspect = dW / dH;
+    const nAspect = nW / nH;
+    let scale: number;
+    let offX = 0, offY = 0;
+    if (dAspect > nAspect) {
+      scale = nW / dW;
+      offY = (nH - dH * scale) / 2;
+    } else {
+      scale = nH / dH;
+      offX = (nW - dW * scale) / 2;
+    }
+
+    // Guide occupies 80% width and 32% height, centered
+    const guideX = 0.10, guideY = 0.34, guideW = 0.80, guideH = 0.32;
+    return {
+      left:   Math.round(offX + guideX * dW * scale),
+      top:    Math.round(offY + guideY * dH * scale),
+      width:  Math.round(guideW * dW * scale),
+      height: Math.round(guideH * dH * scale),
+    };
+  },
+
   async _captureAndRecognize() {
     const video = document.getElementById('cameraVideo') as HTMLVideoElement;
     const canvas = document.getElementById('cameraCanvas') as HTMLCanvasElement;
@@ -798,7 +827,8 @@ const App = {
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
     try {
-      const result = await recognizeMeterReading(canvas);
+      const cropRect = this._getVideoCropRect(video);
+      const result = await recognizeMeterReading(canvas, cropRect);
       if (result && targetEl) {
         targetEl.value = result;
         targetEl.focus();

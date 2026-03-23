@@ -2,9 +2,16 @@
  * Strompresi – OCR für Zählerstand-Erkennung (Tesseract.js)
  */
 
+export interface CropRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 /**
- * Extrahiert die wahrscheinlichste Zählerstand-Zahl aus OCR-Text
- * Zählerstände: 4-8 Ziffern, optional Komma/Punkt für Dezimalstellen
+ * Extrahiert die wahrscheinlichste Zählerstand-Zahl aus OCR-Text.
+ * Zählerstände: 4-8 Ziffern, optional Komma/Punkt für Dezimalstellen.
  */
 export function extractMeterReading(text: string | null | undefined): string | null {
   if (!text || typeof text !== 'string') return null;
@@ -21,22 +28,61 @@ export function extractMeterReading(text: string | null | undefined): string | n
 }
 
 /**
- * Konvertiert Canvas zu Graustufen und erhöht den Kontrast.
- * Verbessert die Erkennungsgenauigkeit für Ziffern deutlich.
+ * Schneidet einen Bereich aus dem Canvas aus und gibt einen neuen Canvas zurück.
+ */
+function cropCanvas(src: HTMLCanvasElement, rect: CropRect): HTMLCanvasElement {
+  const dst = document.createElement('canvas');
+  dst.width = rect.width;
+  dst.height = rect.height;
+  const ctx = dst.getContext('2d')!;
+  ctx.drawImage(src, rect.left, rect.top, rect.width, rect.height, 0, 0, rect.width, rect.height);
+  return dst;
+}
+
+/**
+ * Bereitet das Bild für OCR vor:
+ * – 2× Hochskalierung (schärfere Kanten für Tesseract)
+ * – Graustufen-Konvertierung
+ * – Binärisierung mit Mittelwert als Schwellwert
+ * – Auto-Invertierung: Zähler mit hellen Ziffern auf dunklem Hintergrund
+ *   werden invertiert, damit Tesseract dunkle Zeichen auf weißem Grund liest.
  */
 function preprocessCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
+  const scale = 2;
   const dst = document.createElement('canvas');
-  dst.width = src.width;
-  dst.height = src.height;
+  dst.width = src.width * scale;
+  dst.height = src.height * scale;
   const ctx = dst.getContext('2d')!;
-  ctx.drawImage(src, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(src, 0, 0, dst.width, dst.height);
+
   const img = ctx.getImageData(0, 0, dst.width, dst.height);
   const d = img.data;
+
+  // Grayscale
   for (let i = 0; i < d.length; i += 4) {
     const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    const v = Math.max(0, Math.min(255, (gray - 128) * 1.6 + 128));
-    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i] = d[i + 1] = d[i + 2] = gray;
   }
+
+  // Calculate mean brightness before binarization
+  let sum = 0;
+  for (let i = 0; i < d.length; i += 4) sum += d[i];
+  const mean = sum / (d.length / 4);
+
+  // Binarize using mean as threshold
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = d[i + 1] = d[i + 2] = d[i] >= mean ? 255 : 0;
+  }
+
+  // If image was mostly dark (e.g. roller display: light digits on black),
+  // invert so digits become dark on white — Tesseract works better this way.
+  if (mean < 100) {
+    for (let i = 0; i < d.length; i += 4) {
+      d[i] = d[i + 1] = d[i + 2] = 255 - d[i];
+    }
+  }
+
   ctx.putImageData(img, 0, 0);
   return dst;
 }
@@ -44,9 +90,11 @@ function preprocessCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
 /**
  * Führt OCR auf einem Bild (Canvas/Blob) aus.
  * Wirft einen beschreibenden Fehler wenn offline.
+ * cropRect: optionaler Ausschnitt aus dem Canvas der erkannt werden soll.
  */
 export async function recognizeMeterReading(
-  imageSource: HTMLCanvasElement | Blob
+  imageSource: HTMLCanvasElement | Blob,
+  cropRect?: CropRect
 ): Promise<string | null> {
   if (!navigator.onLine) {
     throw new Error('OCR benötigt eine Internetverbindung (Tesseract.js wird nachgeladen).');
@@ -57,8 +105,20 @@ export async function recognizeMeterReading(
   );
   const worker = await Tesseract.createWorker('eng', 1, { logger: () => {} });
   try {
-    await worker.setParameters({ tessedit_char_whitelist: '0123456789.,' });
-    const src = imageSource instanceof HTMLCanvasElement ? preprocessCanvas(imageSource) : imageSource;
+    // PSM 7 = single text line — ideal for one row of meter digits
+    await worker.setParameters({
+      tessedit_char_whitelist: '0123456789.,',
+      tessedit_pageseg_mode: '7',
+    });
+
+    let src: HTMLCanvasElement | Blob;
+    if (imageSource instanceof HTMLCanvasElement) {
+      const cropped = cropRect ? cropCanvas(imageSource, cropRect) : imageSource;
+      src = preprocessCanvas(cropped);
+    } else {
+      src = imageSource;
+    }
+
     const {
       data: { text },
     } = await worker.recognize(src);

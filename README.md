@@ -2,6 +2,15 @@
 
 **Monatlicher Abschlags-Check** – Einmal im Monat Zählerstände eintragen und prüfen, ob dein Strom und Gas-Abschlag noch passt.
 
+## Warum Strompresi?
+
+- **Deine Daten bleiben bei dir** – Alles wird ausschließlich lokal im Browser gespeichert (localStorage). Kein Server, keine Cloud, kein Konto. Niemand außer dir kann deine Verbrauchsdaten einsehen.
+- **Unabhängig vom Anbieter** – Auch wenn deine Strom- oder Gas-App den Zugang sperrt, der Anbieter wechselt oder eine App eingestellt wird: deine eigene Liste bleibt bestehen. Du bist nicht auf das Portal deines Energieversorgers angewiesen.
+- **Funktioniert offline** – Als PWA installierbar. Läuft vollständig im Browser, auch ohne Internetverbindung.
+- **Kein Konto, kein Login** – Keine Registrierung, keine E-Mail-Adresse, kein Passwort.
+- **Strom & Gas in einer App** – Beide Zähler separat dokumentiert, mit eigenem Chart und eigener Historie.
+- **Volle Datenkontrolle** – Export als JSON (Backup/Import) oder CSV (Excel, Numbers, Google Sheets). Deine Daten gehören dir.
+
 ## Was macht es?
 
 Du gibst ein:

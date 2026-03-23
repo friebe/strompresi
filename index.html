@@ -31,7 +31,13 @@
         </div>
         <header class="header no-print">
             <h1>Strompresi</h1>
-            <p class="tagline">Strom & Gas – Zählerstand eingeben, Verbrauchstrend und Abschlags-Empfehlung.</p>
+            <p class="tagline">Strom & Gas lokal dokumentieren – deine Daten bleiben bei dir, unabhängig vom Anbieter.</p>
+            <div class="usp-chips" aria-label="Vorteile">
+                <span class="usp-chip">Lokal &amp; privat</span>
+                <span class="usp-chip">Kein Konto</span>
+                <span class="usp-chip">Offline-fähig</span>
+                <span class="usp-chip">Anbieter-unabhängig</span>
+            </div>
         </header>
 
         <main class="main">
@@ -181,6 +187,10 @@
                     <div class="camera-preview-wrap">
                         <video id="cameraVideo" autoplay playsinline></video>
                         <canvas id="cameraCanvas" class="hidden"></canvas>
+                        <div class="camera-target-guide" aria-hidden="true">
+                            <div class="camera-target-box"></div>
+                            <p class="camera-target-label">Ziffern hier einrahmen</p>
+                        </div>
                     </div>
                     <p id="cameraStatus" class="camera-status"></p>
                     <div class="camera-modal-footer">
@@ -192,7 +202,7 @@
         </div>
 
         <footer class="footer no-print">
-            <p>Einmal im Monat Zählerstand für Strom & Gas eintragen – so vermeidest du böse Überraschungen bei der Jahresabrechnung.</p>
+            <p>Deine Daten bleiben lokal – kein Server, kein Konto, kein Anbieter-Portal nötig. Einmal im Monat Zählerstand eintragen, Nachzahlungen vermeiden.</p>
         </footer>
     </div>
 
