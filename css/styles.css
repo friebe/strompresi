@@ -1058,6 +1058,57 @@ body {
     color: var(--text-muted);
 }
 
+.footer-support {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.btn-coffee {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #FFDD00;
+    color: #000;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.btn-coffee:hover {
+    background: #f0d000;
+    transform: translateY(-1px);
+}
+
+.btn-coffee:active {
+    transform: translateY(0);
+}
+
+.btn-coffee-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.footer-contact {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-contact:hover {
+    color: var(--accent);
+}
+
 /* Druckansicht */
 .print-only {
     display: none;
