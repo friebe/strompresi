@@ -18,6 +18,7 @@ import type { HistoryEntry, TabId } from './types.js';
 
 const STORAGE_KEY_STROM = 'strompresi_strom';
 const STORAGE_KEY_GAS = 'strompresi_gas';
+const STORAGE_KEY_WASSER = 'strompresi_wasser';
 const INSTALL_BANNER_DISMISSED_KEY = 'strompresi_install_banner_dismissed_v2';
 const BACKUP_INTERVAL_DAYS = 90; // Auto-Backup alle 3 Monate
 
@@ -44,6 +45,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 const App = {
   activeTab: 'strom' as TabId,
+  _wasserMode: false as boolean,
   _cameraTarget: '' as string,
   _cameraStream: null as MediaStream | null,
   _deferredInstallPrompt: null as BeforeInstallPromptEvent | null,
@@ -57,7 +59,7 @@ const App = {
     document.querySelectorAll('.tab').forEach((btn) => {
       btn.addEventListener('click', () => {
         const tab = (btn as HTMLElement).dataset.tab;
-        if (tab === 'strom' || tab === 'gas') this.switchTab(tab);
+        if (tab === 'strom' || tab === 'gas' || tab === 'wasser') this.switchTab(tab);
       });
     });
     document.getElementById('btnExport')?.addEventListener('click', () => this.exportData());
@@ -106,6 +108,7 @@ const App = {
     }
     this._maybeShowIOSInstallBanner();
     this._updateTabLabels();
+    this._updateWasserUI();
     this._loadStoredData();
     document.getElementById('verbrauchChartYear')?.addEventListener('change', (e) => {
       const year = parseInt((e.target as HTMLSelectElement).value, 10);
@@ -188,7 +191,21 @@ const App = {
   },
 
   _getStorageKey(): string {
-    return this.activeTab === 'gas' ? STORAGE_KEY_GAS : STORAGE_KEY_STROM;
+    if (this.activeTab === 'gas') return STORAGE_KEY_GAS;
+    if (this.activeTab === 'wasser') return STORAGE_KEY_WASSER;
+    return STORAGE_KEY_STROM;
+  },
+
+  /** Passt UI-Elemente an, die nur im Wasser-Tab anders sind */
+  _updateWasserUI() {
+    const isWasser = this.activeTab === 'wasser';
+    const rowAbschlag = document.getElementById('rowAbschlag');
+    const abschlagEl = document.getElementById('currentAbschlag') as HTMLInputElement | null;
+    if (rowAbschlag) rowAbschlag.classList.toggle('hidden', isWasser);
+    if (abschlagEl) {
+      abschlagEl.required = !isWasser;
+      if (isWasser) abschlagEl.value = '0';
+    }
   },
 
   _updateTabLabels() {
@@ -203,8 +220,10 @@ const App = {
     if (unitReadingAgo) unitReadingAgo.textContent = cfg.unit;
     if (unitPrice) unitPrice.textContent = cfg.priceLabel;
     if (statVerbrauchUnit) statVerbrauchUnit.textContent = cfg.unit;
-    if (readingNow) readingNow.placeholder = this.activeTab === 'strom' ? 'z.B. 4523.5' : 'z.B. 1234.5';
-    if (pricePerUnit) pricePerUnit.placeholder = this.activeTab === 'strom' ? 'z.B. 0,32' : 'z.B. 0,12';
+    const readingPlaceholders: Record<TabId, string> = { strom: 'z.B. 4523.5', gas: 'z.B. 1234.5', wasser: 'z.B. 523.5' };
+    const pricePlaceholders: Record<TabId, string> = { strom: 'z.B. 0,32', gas: 'z.B. 0,12', wasser: 'z.B. 2,50' };
+    if (readingNow) readingNow.placeholder = readingPlaceholders[this.activeTab];
+    if (pricePerUnit) pricePerUnit.placeholder = pricePlaceholders[this.activeTab];
   },
 
   switchTab(tab: TabId) {
@@ -214,6 +233,7 @@ const App = {
       btn.classList.toggle('active', (btn as HTMLElement).dataset.tab === tab);
     });
     this._updateTabLabels();
+    this._updateWasserUI();
     document.getElementById('resultsSection')?.classList.add('hidden');
     this._loadStoredData();
   },
@@ -319,12 +339,11 @@ const App = {
       return;
     }
     if (pricePerUnit <= 0) {
-      alert(
-        `Bitte einen gültigen Arbeitspreis eingeben (z.B. ${this.activeTab === 'strom' ? '0,32 €/kWh' : '0,12 €/m³'}).`
-      );
+      const examples: Record<TabId, string> = { strom: '0,32 €/kWh', gas: '0,12 €/m³', wasser: '2,50 €/m³' };
+      alert(`Bitte einen gültigen Arbeitspreis eingeben (z.B. ${examples[this.activeTab]}).`);
       return;
     }
-    if (abschlag <= 0) {
+    if (this.activeTab !== 'wasser' && abschlag <= 0) {
       alert('Bitte deinen aktuellen monatlichen Abschlag eingeben.');
       return;
     }
@@ -339,6 +358,13 @@ const App = {
 
   showResults({ verbrauch, kosten, abschlag, pricePerUnit, baseFee }: ResultsParams) {
     document.getElementById('resultsSection')?.classList.remove('hidden');
+    const isWasser = this.activeTab === 'wasser';
+    document.getElementById('verdictCard')?.classList.toggle('hidden', isWasser);
+    document.getElementById('barChartSection')?.classList.toggle('hidden', isWasser);
+    document.getElementById('statCardAbschlag')?.classList.toggle('hidden', isWasser);
+    document.getElementById('statCardDifferenz')?.classList.toggle('hidden', isWasser);
+    document.getElementById('statCardJahresWasser')?.classList.toggle('hidden', !isWasser);
+    document.getElementById('statCardAvgWasser')?.classList.toggle('hidden', !isWasser);
 
     const now = new Date();
     const monthBadge = document.getElementById('monthBadge');
@@ -431,6 +457,26 @@ const App = {
         differenz > 0 ? '+' + formatEuro(differenz) : differenz < 0 ? formatEuro(differenz) : '0,00 €';
       statDifferenz.className =
         'stat-value' + (differenz > 0 ? ' positive' : differenz < 0 ? ' negative' : '');
+    }
+
+    // Wasser-spezifische Stats: Jahreshochrechnung + Ø Verbrauch
+    if (isWasser) {
+      const unit = CONFIG[this.activeTab].unit;
+      const avgV = history.length > 0 ? history.reduce((s, h) => s + (h.verbrauch || 0), 0) / history.length : verbrauch;
+      const jahresKosten = avgV * 12 * pricePerUnit + baseFee * 12;
+      const statJahresWasser = document.getElementById('statJahresWasser');
+      const statJahresWasserLabel = document.getElementById('statJahresWasserLabel');
+      const statAvgWasser = document.getElementById('statAvgWasser');
+      const statAvgWasserUnit = document.getElementById('statAvgWasserUnit');
+      if (statJahresWasserLabel)
+        statJahresWasserLabel.textContent = history.length > 1
+          ? `Jahreshochrechnung (Ø ${history.length} Monate)`
+          : 'Jahreshochrechnung';
+      if (statJahresWasser) statJahresWasser.textContent = formatEuro(jahresKosten);
+      if (statAvgWasser) statAvgWasser.textContent = formatNum(avgV);
+      if (statAvgWasserUnit) statAvgWasserUnit.textContent = unit;
+      // Stat-Card Ø Verbrauch nur zeigen wenn genug Historie
+      document.getElementById('statCardAvgWasser')?.classList.toggle('hidden', history.length < 2);
     }
 
     // Verbrauch-Chart (Zählerstände-Verlauf)
@@ -643,19 +689,21 @@ const App = {
   exportCsv() {
     const strom = load(STORAGE_KEY_STROM) || {};
     const gas = load(STORAGE_KEY_GAS) || {};
-    const csv = toCsv(strom, gas);
+    const wasser = load(STORAGE_KEY_WASSER) || {};
+    const csv = toCsv(strom, gas, wasser);
     downloadCsv(csv, `strompresi-${new Date().toISOString().slice(0, 10)}.csv`);
   },
 
   print() {
     const strom = load(STORAGE_KEY_STROM) || {};
     const gas = load(STORAGE_KEY_GAS) || {};
+    const wasser = load(STORAGE_KEY_WASSER) || {};
     const dateStr = new Date().toLocaleDateString('de-DE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
-    const html = this._buildPrintHtml(strom, gas, dateStr);
+    const html = this._buildPrintHtml(strom, gas, wasser, dateStr);
     const el = document.getElementById('printSection');
     if (el) {
       el.innerHTML = html;
@@ -664,11 +712,12 @@ const App = {
     window.print();
   },
 
-  _buildPrintHtml(strom: { history?: HistoryEntry[] }, gas: { history?: HistoryEntry[] }, dateStr: string): string {
+  _buildPrintHtml(strom: { history?: HistoryEntry[] }, gas: { history?: HistoryEntry[] }, wasser: { history?: HistoryEntry[] }, dateStr: string): string {
     const currentYear = new Date().getFullYear();
     const stromChartHtml = (strom.history?.length ?? 0) > 0 ? this._buildChartHtml(strom.history ?? [], currentYear, 'kWh') : '';
     const gasChartHtml = (gas.history?.length ?? 0) > 0 ? this._buildChartHtml(gas.history ?? [], currentYear, 'm³') : '';
-    const hasCharts = stromChartHtml || gasChartHtml;
+    const wasserChartHtml = (wasser.history?.length ?? 0) > 0 ? this._buildChartHtml(wasser.history ?? [], currentYear, 'm³') : '';
+    const hasCharts = stromChartHtml || gasChartHtml || wasserChartHtml;
 
     const formatDate = (month: string, recordedDay?: number) => {
       const [y, m] = month.split('-').map(Number);
@@ -714,13 +763,15 @@ const App = {
     };
     const stromTable = tableFor(strom.history ?? [], 'Strom', 'kWh');
     const gasTable = tableFor(gas.history ?? [], 'Gas', 'm³');
-    const hasData = stromTable || gasTable;
+    const wasserTable = tableFor(wasser.history ?? [], 'Wasser', 'm³');
+    const hasData = stromTable || gasTable || wasserTable;
 
     const chartsSection = hasCharts
       ? `
       <div class="print-charts-row">
         ${stromChartHtml ? `<div class="print-chart-col"><h4>Strom (kWh)</h4><div class="verbrauch-chart">${stromChartHtml}</div></div>` : ''}
         ${gasChartHtml ? `<div class="print-chart-col"><h4>Gas (m³)</h4><div class="verbrauch-chart">${gasChartHtml}</div></div>` : ''}
+        ${wasserChartHtml ? `<div class="print-chart-col"><h4>Wasser (m³)</h4><div class="verbrauch-chart">${wasserChartHtml}</div></div>` : ''}
       </div>`
       : '';
 
@@ -728,12 +779,12 @@ const App = {
       <div class="print-section-title">Strompresi – Zählerstände & Verbrauch</div>
       <div class="print-section-date">Stand: ${dateStr}</div>
       ${chartsSection}
-      ${hasData ? stromTable + gasTable : hasCharts ? '' : '<p>Keine Daten zum Drucken.</p>'}
+      ${hasData ? stromTable + gasTable + wasserTable : hasCharts ? '' : '<p>Keine Daten zum Drucken.</p>'}
     `;
   },
 
   _downloadBackup() {
-    const data = exportAll(STORAGE_KEY_STROM, STORAGE_KEY_GAS);
+    const data = exportAll(STORAGE_KEY_STROM, STORAGE_KEY_GAS, STORAGE_KEY_WASSER);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -855,7 +906,7 @@ const App = {
     reader.onload = (e) => {
       try {
         const data = JSON.parse((e.target?.result as string) || '{}');
-        const result = importAll(data, STORAGE_KEY_STROM, STORAGE_KEY_GAS);
+        const result = importAll(data, STORAGE_KEY_STROM, STORAGE_KEY_GAS, STORAGE_KEY_WASSER);
         if (result.success) {
           this._loadStoredData();
           alert(result.message);
