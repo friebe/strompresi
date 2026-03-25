@@ -1,7 +1,7 @@
 {
-  "name": "Strompresi – Strom & Gas Abschlags-Check",
+  "name": "Strompresi – Strom, Gas & Wasser tracken",
   "short_name": "Strompresi",
-  "description": "Zählerstand eingeben, Verbrauchstrend und Abschlags-Empfehlung",
+  "description": "Zählerstände für Strom, Gas & Wasser monatlich dokumentieren, Verbrauch tracken und Abschlag optimieren",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
