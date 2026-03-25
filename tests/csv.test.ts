@@ -68,4 +68,52 @@ describe('toCsv', () => {
     expect(lines[1]).toContain('Strom');
     expect(lines[2]).toContain('Gas');
   });
+
+  it('exportiert Wasser-Historie mit Einheit m³', () => {
+    const wasser = {
+      history: [
+        {
+          month: '2025-03',
+          monthName: 'März 2025',
+          verbrauch: 5.5,
+          reading: 523.5,
+          recordedDay: 10,
+          kosten: 21.75,
+        },
+      ],
+    };
+    const csv = toCsv({}, {}, wasser);
+    const lines = csv.split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('Wasser');
+    expect(lines[1]).toContain('März 2025');
+    expect(lines[1]).toContain('10.03.2025');
+    expect(lines[1]).toContain('523,50');
+    expect(lines[1]).toContain('5,5');
+    expect(lines[1]).toContain('m³');
+    expect(lines[1]).toContain('21,75');
+  });
+
+  it('kombiniert Strom, Gas und Wasser in einer Datei', () => {
+    const strom = {
+      history: [{ month: '2025-01', monthName: 'Jan 2025', verbrauch: 100, reading: 4500 }],
+    };
+    const gas = {
+      history: [{ month: '2025-01', monthName: 'Jan 2025', verbrauch: 50, reading: 1200 }],
+    };
+    const wasser = {
+      history: [{ month: '2025-01', monthName: 'Jan 2025', verbrauch: 5, reading: 520 }],
+    };
+    const csv = toCsv(strom, gas, wasser);
+    const lines = csv.split('\n');
+    expect(lines).toHaveLength(4); // header + strom + gas + wasser
+    expect(lines[1]).toContain('Strom');
+    expect(lines[2]).toContain('Gas');
+    expect(lines[3]).toContain('Wasser');
+  });
+
+  it('gibt leere CSV mit Header zurück wenn nur wasser leer ist', () => {
+    const csv = toCsv({}, {}, {});
+    expect(csv.split('\n')).toHaveLength(1);
+  });
 });

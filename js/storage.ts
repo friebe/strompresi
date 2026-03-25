@@ -31,7 +31,7 @@ export function save(key: string, data: StoredData): void {
 /**
  * Exportiert alle Daten (Strom + Gas + Wasser) inkl. vollständiger Historie
  */
-export function exportAll(stromKey: string, gasKey: string, wasserKey: string) {
+export function exportAll(stromKey: string, gasKey: string, wasserKey = '') {
   const strom = load(stromKey) || {};
   const gas = load(gasKey) || {};
   const wasser = load(wasserKey) || {};
@@ -77,7 +77,7 @@ export function importAll(
   data: unknown,
   stromKey: string,
   gasKey: string,
-  wasserKey: string
+  wasserKey = ''
 ): ImportResult {
   try {
     if (!data || typeof data !== 'object') {

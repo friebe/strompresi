@@ -41,7 +41,7 @@ function csvRow(...values: (string | number)[]): string {
  */
 function historyToCsvRows(
   history: HistoryEntry[],
-  typ: 'Strom' | 'Gas',
+  typ: 'Strom' | 'Gas' | 'Wasser',
   unit: string
 ): string[] {
   const rows: string[] = [];
@@ -59,7 +59,7 @@ function historyToCsvRows(
 /**
  * Erzeugt CSV-String aus Strom-, Gas- und Wasser-Daten
  */
-export function toCsv(strom: StoredData, gas: StoredData, wasser: StoredData): string {
+export function toCsv(strom: StoredData, gas: StoredData, wasser: StoredData = {}): string {
   const header = csvRow(
     'Typ',
     'Monat',

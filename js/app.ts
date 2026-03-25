@@ -13,6 +13,7 @@ import {
   calcTolerance,
   calcVerdict,
   calcZielAbschlag,
+  calcJahreskosten,
 } from './calc.js';
 import type { HistoryEntry, TabId } from './types.js';
 
@@ -463,7 +464,7 @@ const App = {
     if (isWasser) {
       const unit = CONFIG[this.activeTab].unit;
       const avgV = history.length > 0 ? history.reduce((s, h) => s + (h.verbrauch || 0), 0) / history.length : verbrauch;
-      const jahresKosten = avgV * 12 * pricePerUnit + baseFee * 12;
+      const jahresKosten = calcJahreskosten(history, verbrauch, pricePerUnit, baseFee);
       const statJahresWasser = document.getElementById('statJahresWasser');
       const statJahresWasserLabel = document.getElementById('statJahresWasserLabel');
       const statAvgWasser = document.getElementById('statAvgWasser');

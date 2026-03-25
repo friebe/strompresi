@@ -51,3 +51,17 @@ export function calcZielAbschlag(abschlag: number, differenz: number, verdict: V
   const glatt = roundGlatt(Math.abs(differenz));
   return Math.round((abschlag + glatt) / 5) * 5;
 }
+
+/**
+ * Jahreshochrechnung für Wasser (kein Abschlag):
+ * avgVerbrauch × 12 × Arbeitspreis + Grundgebühr × 12
+ */
+export function calcJahreskosten(
+  history: HistoryEntry[],
+  verbrauch: number,
+  pricePerUnit: number,
+  baseFee: number
+): number {
+  const avgV = history.length > 0 ? calcAvgVerbrauch(history) : verbrauch;
+  return avgV * 12 * pricePerUnit + baseFee * 12;
+}

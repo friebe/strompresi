@@ -7,6 +7,7 @@ import {
   calcTolerance,
   calcVerdict,
   calcZielAbschlag,
+  calcJahreskosten,
 } from '../js/calc.js';
 
 describe('calcVerbrauch', () => {
@@ -95,5 +96,34 @@ describe('calcZielAbschlag', () => {
     const ziel = calcZielAbschlag(85, 25, 'up');
     expect(ziel).toBeGreaterThan(85);
     expect(ziel % 5).toBe(0);
+  });
+});
+
+describe('calcJahreskosten (Wasser)', () => {
+  it('rechnet ohne Historie auf Jahresbasis hoch', () => {
+    // 5,5 m³/Monat × 12 × 2,50 €/m³ + 8 € × 12 = 165 + 96 = 261 €
+    expect(calcJahreskosten([], 5.5, 2.5, 8)).toBeCloseTo(261, 2);
+  });
+
+  it('nutzt Durchschnitt der Historie statt aktuellem Verbrauch', () => {
+    const history = [
+      { month: '2025-01', monthName: 'Jan', verbrauch: 4, reading: 518 },
+      { month: '2025-02', monthName: 'Feb', verbrauch: 6, reading: 524 },
+    ];
+    // Ø = 5 m³ → 5 × 12 × 2,50 + 8 × 12 = 150 + 96 = 246 €
+    expect(calcJahreskosten(history, 10, 2.5, 8)).toBeCloseTo(246, 2);
+  });
+
+  it('berücksichtigt Grundgebühr korrekt', () => {
+    // 6 m³ × 12 × 2,00 + 10 × 12 = 144 + 120 = 264 €
+    expect(calcJahreskosten([], 6, 2.0, 10)).toBeCloseTo(264, 2);
+  });
+
+  it('gibt 0 bei Verbrauch 0 und keiner Grundgebühr zurück', () => {
+    expect(calcJahreskosten([], 0, 2.5, 0)).toBe(0);
+  });
+
+  it('gibt nur Grundgebühr × 12 wenn Verbrauch 0', () => {
+    expect(calcJahreskosten([], 0, 2.5, 8)).toBeCloseTo(96, 2);
   });
 });
