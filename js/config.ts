@@ -10,7 +10,7 @@ export const MONTH_NAMES: readonly string[] = [
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ];
 
-export const CONFIG: Record<'strom' | 'gas', EnergyConfig> = {
+export const CONFIG: Record<'strom' | 'gas' | 'wasser', EnergyConfig> = {
   strom: {
     unit: 'kWh',
     priceLabel: '€/kWh',
@@ -31,6 +31,17 @@ export const CONFIG: Record<'strom' | 'gas', EnergyConfig> = {
       pricePerUnit: '0.12',
       baseFee: '15',
       currentAbschlag: '95',
+    },
+  },
+  wasser: {
+    unit: 'm³',
+    priceLabel: '€/m³',
+    example: {
+      readingNow: '523.5',
+      readingMonthAgo: '518',
+      pricePerUnit: '2.50',
+      baseFee: '8',
+      currentAbschlag: '0',
     },
   },
 };

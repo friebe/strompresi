@@ -57,9 +57,9 @@ function historyToCsvRows(
 }
 
 /**
- * Erzeugt CSV-String aus Strom- und Gas-Daten
+ * Erzeugt CSV-String aus Strom-, Gas- und Wasser-Daten
  */
-export function toCsv(strom: StoredData, gas: StoredData): string {
+export function toCsv(strom: StoredData, gas: StoredData, wasser: StoredData): string {
   const header = csvRow(
     'Typ',
     'Monat',
@@ -73,8 +73,9 @@ export function toCsv(strom: StoredData, gas: StoredData): string {
 
   const stromRows = historyToCsvRows(strom.history ?? [], 'Strom', 'kWh');
   const gasRows = historyToCsvRows(gas.history ?? [], 'Gas', 'm³');
+  const wasserRows = historyToCsvRows(wasser.history ?? [], 'Wasser', 'm³');
 
-  const lines = [header, ...stromRows, ...gasRows];
+  const lines = [header, ...stromRows, ...gasRows, ...wasserRows];
   return lines.join('\n');
 }
 

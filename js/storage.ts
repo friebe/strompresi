@@ -29,23 +29,27 @@ export function save(key: string, data: StoredData): void {
 }
 
 /**
- * Exportiert alle Daten (Strom + Gas) inkl. vollständiger Historie
+ * Exportiert alle Daten (Strom + Gas + Wasser) inkl. vollständiger Historie
  */
-export function exportAll(stromKey: string, gasKey: string) {
+export function exportAll(stromKey: string, gasKey: string, wasserKey: string) {
   const strom = load(stromKey) || {};
   const gas = load(gasKey) || {};
+  const wasser = load(wasserKey) || {};
   const stromMonths = strom.history?.length ?? 0;
   const gasMonths = gas.history?.length ?? 0;
+  const wasserMonths = wasser.history?.length ?? 0;
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
     summary: {
       stromMonths,
       gasMonths,
-      info: `Vollständiger Export: ${stromMonths} Strom-Monate, ${gasMonths} Gas-Monate`,
+      wasserMonths,
+      info: `Vollständiger Export: ${stromMonths} Strom-Monate, ${gasMonths} Gas-Monate, ${wasserMonths} Wasser-Monate`,
     },
     strom,
     gas,
+    wasser,
   };
 }
 
@@ -72,7 +76,8 @@ export function setLastBackupDate(): void {
 export function importAll(
   data: unknown,
   stromKey: string,
-  gasKey: string
+  gasKey: string,
+  wasserKey: string
 ): ImportResult {
   try {
     if (!data || typeof data !== 'object') {
@@ -84,6 +89,9 @@ export function importAll(
     }
     if (obj.gas && typeof obj.gas === 'object') {
       save(gasKey, obj.gas as StoredData);
+    }
+    if (obj.wasser && typeof obj.wasser === 'object') {
+      save(wasserKey, obj.wasser as StoredData);
     }
     if (obj.history && !obj.strom && !obj.gas) {
       save(stromKey, obj as unknown as StoredData);

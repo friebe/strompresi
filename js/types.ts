@@ -45,9 +45,10 @@ export interface StoredData {
 export interface ExportData {
   version: number;
   exportedAt: string;
-  summary: { stromMonths: number; gasMonths: number; info: string };
+  summary: { stromMonths: number; gasMonths: number; wasserMonths: number; info: string };
   strom: StoredData;
   gas: StoredData;
+  wasser: StoredData;
 }
 
 export interface ImportResult {
@@ -55,4 +56,4 @@ export interface ImportResult {
   message: string;
 }
 
-export type TabId = 'strom' | 'gas';
+export type TabId = 'strom' | 'gas' | 'wasser';
