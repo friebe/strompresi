@@ -27,6 +27,8 @@ export interface HistoryEntry {
   abschlag?: number;
   /** Kosten zum Zeitpunkt der Erfassung (Verbrauch × Arbeitspreis + Grundgebühr) */
   kosten?: number;
+  /** Jahreshochrechnung zum Zeitpunkt der Erfassung (nur Wasser) */
+  jahreskosten?: number;
 }
 
 export interface StoredSettings {

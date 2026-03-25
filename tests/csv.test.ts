@@ -5,6 +5,7 @@ describe('toCsv', () => {
   it('gibt leere CSV mit Header zurück bei leerer Historie', () => {
     const csv = toCsv({}, {});
     expect(csv).toContain('Typ;Monat;Ablesedatum');
+    expect(csv).toContain('Voraussichtl. Jahreskosten');
     expect(csv.split('\n')).toHaveLength(1);
   });
 

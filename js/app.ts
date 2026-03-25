@@ -20,7 +20,6 @@ import type { HistoryEntry, TabId } from './types.js';
 const STORAGE_KEY_STROM = 'strompresi_strom';
 const STORAGE_KEY_GAS = 'strompresi_gas';
 const STORAGE_KEY_WASSER = 'strompresi_wasser';
-const STORAGE_KEY_WASSER = 'strompresi_wasser';
 const INSTALL_BANNER_DISMISSED_KEY = 'strompresi_install_banner_dismissed_v2';
 const BACKUP_INTERVAL_DAYS = 90; // Auto-Backup alle 3 Monate
 
@@ -48,7 +47,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
 const App = {
   activeTab: 'strom' as TabId,
   _wasserMode: false as boolean,
-  _wasserMode: false as boolean,
   _cameraTarget: '' as string,
   _cameraStream: null as MediaStream | null,
   _deferredInstallPrompt: null as BeforeInstallPromptEvent | null,
@@ -62,7 +60,7 @@ const App = {
     document.querySelectorAll('.tab').forEach((btn) => {
       btn.addEventListener('click', () => {
         const tab = (btn as HTMLElement).dataset.tab;
-        if (tab === 'strom' || tab === 'gas' || tab === 'wasser' || tab === 'wasser') this.switchTab(tab);
+        if (tab === 'strom' || tab === 'gas' || tab === 'wasser') this.switchTab(tab);
       });
     });
     document.getElementById('btnExport')?.addEventListener('click', () => this.exportData());
@@ -111,7 +109,6 @@ const App = {
     }
     this._maybeShowIOSInstallBanner();
     this._updateTabLabels();
-    this._updateWasserUI();
     this._updateWasserUI();
     this._loadStoredData();
     document.getElementById('verbrauchChartYear')?.addEventListener('change', (e) => {
@@ -210,21 +207,6 @@ const App = {
       abschlagEl.required = !isWasser;
       if (isWasser) abschlagEl.value = '0';
     }
-    if (this.activeTab === 'gas') return STORAGE_KEY_GAS;
-    if (this.activeTab === 'wasser') return STORAGE_KEY_WASSER;
-    return STORAGE_KEY_STROM;
-  },
-
-  /** Passt UI-Elemente an, die nur im Wasser-Tab anders sind */
-  _updateWasserUI() {
-    const isWasser = this.activeTab === 'wasser';
-    const rowAbschlag = document.getElementById('rowAbschlag');
-    const abschlagEl = document.getElementById('currentAbschlag') as HTMLInputElement | null;
-    if (rowAbschlag) rowAbschlag.classList.toggle('hidden', isWasser);
-    if (abschlagEl) {
-      abschlagEl.required = !isWasser;
-      if (isWasser) abschlagEl.value = '0';
-    }
   },
 
   _updateTabLabels() {
@@ -243,10 +225,6 @@ const App = {
     const pricePlaceholders: Record<TabId, string> = { strom: 'z.B. 0,32', gas: 'z.B. 0,12', wasser: 'z.B. 2,50' };
     if (readingNow) readingNow.placeholder = readingPlaceholders[this.activeTab];
     if (pricePerUnit) pricePerUnit.placeholder = pricePlaceholders[this.activeTab];
-    const readingPlaceholders: Record<TabId, string> = { strom: 'z.B. 4523.5', gas: 'z.B. 1234.5', wasser: 'z.B. 523.5' };
-    const pricePlaceholders: Record<TabId, string> = { strom: 'z.B. 0,32', gas: 'z.B. 0,12', wasser: 'z.B. 2,50' };
-    if (readingNow) readingNow.placeholder = readingPlaceholders[this.activeTab];
-    if (pricePerUnit) pricePerUnit.placeholder = pricePlaceholders[this.activeTab];
   },
 
   switchTab(tab: TabId) {
@@ -256,7 +234,6 @@ const App = {
       btn.classList.toggle('active', (btn as HTMLElement).dataset.tab === tab);
     });
     this._updateTabLabels();
-    this._updateWasserUI();
     this._updateWasserUI();
     document.getElementById('resultsSection')?.classList.add('hidden');
     this._loadStoredData();
@@ -335,6 +312,13 @@ const App = {
       data.history.push({ month: monthKey, monthName, verbrauch, reading: readingNow, recordedDay, abschlag: settings.abschlag, kosten });
     }
     data.history = data.history.slice(-120);
+
+    // Jahreskosten für Wasser zum Zeitpunkt der Erfassung berechnen und speichern
+    if (this.activeTab === 'wasser') {
+      const currentEntry = data.history[data.history.length - 1];
+      currentEntry.jahreskosten = calcJahreskosten(data.history, verbrauch, settings.pricePerUnit, settings.baseFee);
+    }
+
     data.lastReading = readingNow;
     data.settings = settings;
 
@@ -365,11 +349,8 @@ const App = {
     if (pricePerUnit <= 0) {
       const examples: Record<TabId, string> = { strom: '0,32 €/kWh', gas: '0,12 €/m³', wasser: '2,50 €/m³' };
       alert(`Bitte einen gültigen Arbeitspreis eingeben (z.B. ${examples[this.activeTab]}).`);
-      const examples: Record<TabId, string> = { strom: '0,32 €/kWh', gas: '0,12 €/m³', wasser: '2,50 €/m³' };
-      alert(`Bitte einen gültigen Arbeitspreis eingeben (z.B. ${examples[this.activeTab]}).`);
       return;
     }
-    if (this.activeTab !== 'wasser' && abschlag <= 0) {
     if (this.activeTab !== 'wasser' && abschlag <= 0) {
       alert('Bitte deinen aktuellen monatlichen Abschlag eingeben.');
       return;
@@ -385,13 +366,6 @@ const App = {
 
   showResults({ verbrauch, kosten, abschlag, pricePerUnit, baseFee }: ResultsParams) {
     document.getElementById('resultsSection')?.classList.remove('hidden');
-    const isWasser = this.activeTab === 'wasser';
-    document.getElementById('verdictCard')?.classList.toggle('hidden', isWasser);
-    document.getElementById('barChartSection')?.classList.toggle('hidden', isWasser);
-    document.getElementById('statCardAbschlag')?.classList.toggle('hidden', isWasser);
-    document.getElementById('statCardDifferenz')?.classList.toggle('hidden', isWasser);
-    document.getElementById('statCardJahresWasser')?.classList.toggle('hidden', !isWasser);
-    document.getElementById('statCardAvgWasser')?.classList.toggle('hidden', !isWasser);
     const isWasser = this.activeTab === 'wasser';
     document.getElementById('verdictCard')?.classList.toggle('hidden', isWasser);
     document.getElementById('barChartSection')?.classList.toggle('hidden', isWasser);
@@ -504,8 +478,8 @@ const App = {
       const statAvgWasserUnit = document.getElementById('statAvgWasserUnit');
       if (statJahresWasserLabel)
         statJahresWasserLabel.textContent = history.length > 1
-          ? `Jahreshochrechnung (Ø ${history.length} Monate)`
-          : 'Jahreshochrechnung';
+          ? `Voraussichtl. Jahreskosten (\u00d8 ${history.length} Monate)`
+          : 'Voraussichtl. Jahreskosten';
       if (statJahresWasser) statJahresWasser.textContent = formatEuro(jahresKosten);
       if (statAvgWasser) statAvgWasser.textContent = formatNum(avgV);
       if (statAvgWasserUnit) statAvgWasserUnit.textContent = unit;
@@ -725,8 +699,6 @@ const App = {
     const gas = load(STORAGE_KEY_GAS) || {};
     const wasser = load(STORAGE_KEY_WASSER) || {};
     const csv = toCsv(strom, gas, wasser);
-    const wasser = load(STORAGE_KEY_WASSER) || {};
-    const csv = toCsv(strom, gas, wasser);
     downloadCsv(csv, `strompresi-${new Date().toISOString().slice(0, 10)}.csv`);
   },
 
@@ -734,13 +706,11 @@ const App = {
     const strom = load(STORAGE_KEY_STROM) || {};
     const gas = load(STORAGE_KEY_GAS) || {};
     const wasser = load(STORAGE_KEY_WASSER) || {};
-    const wasser = load(STORAGE_KEY_WASSER) || {};
     const dateStr = new Date().toLocaleDateString('de-DE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
-    const html = this._buildPrintHtml(strom, gas, wasser, dateStr);
     const html = this._buildPrintHtml(strom, gas, wasser, dateStr);
     const el = document.getElementById('printSection');
     if (el) {
@@ -751,12 +721,9 @@ const App = {
   },
 
   _buildPrintHtml(strom: { history?: HistoryEntry[] }, gas: { history?: HistoryEntry[] }, wasser: { history?: HistoryEntry[] }, dateStr: string): string {
-  _buildPrintHtml(strom: { history?: HistoryEntry[] }, gas: { history?: HistoryEntry[] }, wasser: { history?: HistoryEntry[] }, dateStr: string): string {
     const currentYear = new Date().getFullYear();
     const stromChartHtml = (strom.history?.length ?? 0) > 0 ? this._buildChartHtml(strom.history ?? [], currentYear, 'kWh') : '';
     const gasChartHtml = (gas.history?.length ?? 0) > 0 ? this._buildChartHtml(gas.history ?? [], currentYear, 'm³') : '';
-    const wasserChartHtml = (wasser.history?.length ?? 0) > 0 ? this._buildChartHtml(wasser.history ?? [], currentYear, 'm³') : '';
-    const hasCharts = stromChartHtml || gasChartHtml || wasserChartHtml;
     const wasserChartHtml = (wasser.history?.length ?? 0) > 0 ? this._buildChartHtml(wasser.history ?? [], currentYear, 'm³') : '';
     const hasCharts = stromChartHtml || gasChartHtml || wasserChartHtml;
 
@@ -767,6 +734,7 @@ const App = {
     };
     const tableFor = (history: HistoryEntry[], typ: string, unit: string) => {
       if (!history?.length) return '';
+      const isWasser = typ === 'Wasser';
       const rows = history
         .map(
           (e) =>
@@ -777,8 +745,9 @@ const App = {
               <td>${formatNum(e.reading ?? 0, 2)}</td>
               <td>${formatNum(e.verbrauch ?? 0)}</td>
               <td>${unit}</td>
-              <td>${e.abschlag != null ? formatEuro(e.abschlag) : '–'}</td>
+              ${!isWasser ? `<td>${e.abschlag != null ? formatEuro(e.abschlag) : '–'}</td>` : ''}
               <td>${e.kosten != null ? formatEuro(e.kosten) : '–'}</td>
+              ${isWasser ? `<td>${e.jahreskosten != null ? formatEuro(e.jahreskosten) : '–'}</td>` : ''}
             </tr>`
         )
         .join('');
@@ -794,8 +763,9 @@ const App = {
                 <th>Zählerstand</th>
                 <th>Verbrauch</th>
                 <th>Einheit</th>
-                <th>Abschlag</th>
+                ${!isWasser ? '<th>Abschlag</th>' : ''}
                 <th>Kosten</th>
+                ${isWasser ? '<th>Voraussichtl. Jahreskosten</th>' : ''}
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -806,15 +776,12 @@ const App = {
     const gasTable = tableFor(gas.history ?? [], 'Gas', 'm³');
     const wasserTable = tableFor(wasser.history ?? [], 'Wasser', 'm³');
     const hasData = stromTable || gasTable || wasserTable;
-    const wasserTable = tableFor(wasser.history ?? [], 'Wasser', 'm³');
-    const hasData = stromTable || gasTable || wasserTable;
 
     const chartsSection = hasCharts
       ? `
       <div class="print-charts-row">
         ${stromChartHtml ? `<div class="print-chart-col"><h4>Strom (kWh)</h4><div class="verbrauch-chart">${stromChartHtml}</div></div>` : ''}
         ${gasChartHtml ? `<div class="print-chart-col"><h4>Gas (m³)</h4><div class="verbrauch-chart">${gasChartHtml}</div></div>` : ''}
-        ${wasserChartHtml ? `<div class="print-chart-col"><h4>Wasser (m³)</h4><div class="verbrauch-chart">${wasserChartHtml}</div></div>` : ''}
         ${wasserChartHtml ? `<div class="print-chart-col"><h4>Wasser (m³)</h4><div class="verbrauch-chart">${wasserChartHtml}</div></div>` : ''}
       </div>`
       : '';
@@ -824,12 +791,10 @@ const App = {
       <div class="print-section-date">Stand: ${dateStr}</div>
       ${chartsSection}
       ${hasData ? stromTable + gasTable + wasserTable : hasCharts ? '' : '<p>Keine Daten zum Drucken.</p>'}
-      ${hasData ? stromTable + gasTable + wasserTable : hasCharts ? '' : '<p>Keine Daten zum Drucken.</p>'}
     `;
   },
 
   _downloadBackup() {
-    const data = exportAll(STORAGE_KEY_STROM, STORAGE_KEY_GAS, STORAGE_KEY_WASSER);
     const data = exportAll(STORAGE_KEY_STROM, STORAGE_KEY_GAS, STORAGE_KEY_WASSER);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -952,7 +917,6 @@ const App = {
     reader.onload = (e) => {
       try {
         const data = JSON.parse((e.target?.result as string) || '{}');
-        const result = importAll(data, STORAGE_KEY_STROM, STORAGE_KEY_GAS, STORAGE_KEY_WASSER);
         const result = importAll(data, STORAGE_KEY_STROM, STORAGE_KEY_GAS, STORAGE_KEY_WASSER);
         if (result.success) {
           this._loadStoredData();

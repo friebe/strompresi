@@ -49,9 +49,10 @@ function historyToCsvRows(
     const ablesedatum = formatDate(e.month, e.recordedDay);
     const zaehlerstand = formatNumCsv(e.reading ?? 0, 2);
     const verbrauch = formatNumCsv(e.verbrauch ?? 0);
-    const abschlag = e.abschlag != null ? formatEuroCsv(e.abschlag) : '';
+    const abschlag = e.abschlag != null && e.abschlag > 0 ? formatEuroCsv(e.abschlag) : '';
     const kosten = e.kosten != null ? formatEuroCsv(e.kosten) : '';
-    rows.push(csvRow(typ, e.monthName, ablesedatum, zaehlerstand, verbrauch, unit, abschlag, kosten));
+    const jahreskosten = e.jahreskosten != null ? formatEuroCsv(e.jahreskosten) : '';
+    rows.push(csvRow(typ, e.monthName, ablesedatum, zaehlerstand, verbrauch, unit, abschlag, kosten, jahreskosten));
   }
   return rows;
 }
@@ -69,15 +70,14 @@ export function toCsv(strom: StoredData, gas: StoredData, wasser: StoredData = {
     'Verbrauch',
     'Einheit',
     'Abschlag',
-    'Kosten'
+    'Kosten',
+    'Voraussichtl. Jahreskosten'
   );
 
   const stromRows = historyToCsvRows(strom.history ?? [], 'Strom', 'kWh');
   const gasRows = historyToCsvRows(gas.history ?? [], 'Gas', 'm³');
   const wasserRows = historyToCsvRows(wasser.history ?? [], 'Wasser', 'm³');
-  const wasserRows = historyToCsvRows(wasser.history ?? [], 'Wasser', 'm³');
 
-  const lines = [header, ...stromRows, ...gasRows, ...wasserRows];
   const lines = [header, ...stromRows, ...gasRows, ...wasserRows];
   return lines.join('\n');
 }

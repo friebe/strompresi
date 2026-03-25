@@ -36,10 +36,8 @@ export function exportAll(stromKey: string, gasKey: string, wasserKey = '') {
   const strom = load(stromKey) || {};
   const gas = load(gasKey) || {};
   const wasser = load(wasserKey) || {};
-  const wasser = load(wasserKey) || {};
   const stromMonths = strom.history?.length ?? 0;
   const gasMonths = gas.history?.length ?? 0;
-  const wasserMonths = wasser.history?.length ?? 0;
   const wasserMonths = wasser.history?.length ?? 0;
   return {
     version: 1,
@@ -48,13 +46,10 @@ export function exportAll(stromKey: string, gasKey: string, wasserKey = '') {
       stromMonths,
       gasMonths,
       wasserMonths,
-      info: `Vollständiger Export: ${stromMonths} Strom-Monate, ${gasMonths} Gas-Monate, ${wasserMonths} Wasser-Monate`,
-      wasserMonths,
-      info: `Vollständiger Export: ${stromMonths} Strom-Monate, ${gasMonths} Gas-Monate, ${wasserMonths} Wasser-Monate`,
+      info: `Vollständiger Export: ${stromMonths} Strom-Monate, ${gasMonths} Gas-Monate, ${wasserMonths} Wasser-Monate`
     },
     strom,
     gas,
-    wasser,
     wasser,
   };
 }
